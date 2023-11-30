@@ -32,7 +32,7 @@ func checkpointService(worker Worker, service Service, option CheckpointOptions)
 		fmt.Println("Error sending the request")
 		return
 	}
-	fmt.Println("Request sent to ff_daemon")
+	fmt.Println("Request sent to controller")
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
@@ -40,7 +40,7 @@ func checkpointService(worker Worker, service Service, option CheckpointOptions)
 		fmt.Println("Error reading the responseBody")
 		return
 	}
-	fmt.Printf("%d %s\n", resp.StatusCode, string(body))
+	fmt.Printf("%d\n %s\n", resp.StatusCode, string(body))
 }
 
 func restoreService(worker Worker, service Service, checkpoint string) {
