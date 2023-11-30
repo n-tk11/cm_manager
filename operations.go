@@ -25,6 +25,7 @@ func checkpointService(worker Worker, service Service, option CheckpointOptions)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
 
+	req.Close = true
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(req)
