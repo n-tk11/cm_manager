@@ -44,12 +44,14 @@ func checkpointService(worker Worker, service Service, option CheckpointOptions)
 	fmt.Printf("%d\n %s\n", resp.StatusCode, string(body))
 }
 
-func restoreService(worker Worker, service Service, checkpoint string) {
+func migrateService(src Worker, dest Worker, service Service, copt CheckpointOptions, ropt RunOptions, stopSrc bool) {
 
-}
-
-func migrateService(src Worker, dest Worker, service Service) {
-
+	checkpointService(src, service, copt)
+	//Let user manage what port there want to use
+	runService(dest, service, ropt)
+	if stopSrc {
+		stopService(src, service)
+	}
 }
 
 func startServiceContainer(worker Worker, serviceName string, appPort string, envs []string, mounts []mount.Mount, caps []string) {
@@ -117,8 +119,31 @@ func addWorker(ipAddrPort string) Worker {
 	return newWorker
 }
 
-func StopService() {
+// TODO TEST
+func stopService(worker Worker, service Service) {
+	url := "http://" + worker.IpAddrPort + "/cm_stop/" + service.Name
 
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		fmt.Println("Error creating new request:", err)
+		return
+	}
+	req.Close = true
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error sending the request")
+		return
+	}
+	fmt.Println("Request sent to controller")
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading the responseBody")
+		return
+	}
+	fmt.Printf("%d %s\n", resp.StatusCode, string(body))
 }
 
 func runService(worker Worker, service Service, option RunOptions) {
