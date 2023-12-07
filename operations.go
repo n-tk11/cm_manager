@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 )
 
 var services = make(map[string]Service)
 var worker_count = 0
-var workers = []Worker{}
+var workers = make(map[string]Worker)
 
-func checkpointService(worker_id int, service Service, option CheckpointOptions) string {
+func checkpointService(worker_id string, service Service, option CheckpointOptions) string {
 
 	url := "http://" + workers[worker_id].IpAddrPort + "/cm_checkpoint/" + service.Name
 	currentTime := time.Now().UTC()
@@ -22,7 +21,7 @@ func checkpointService(worker_id int, service Service, option CheckpointOptions)
 	// Format the time in ISO 8601 format
 	iso8601Format := "2006-01-02T15:04:05Z07:00"
 	iso8601Time := currentTime.Format(iso8601Format)
-	option.ImgUrl = "file:/checkpointfs/" + service.Name + "_" + strconv.Itoa(worker_id) + "_" + iso8601Time
+	option.ImgUrl = "file:/checkpointfs/" + service.Name + "_" + worker_id + "_" + iso8601Time
 	requestBody, err := json.Marshal(option)
 	if err != nil {
 		fmt.Println("Error marshalling JSON:", err)
@@ -56,7 +55,7 @@ func checkpointService(worker_id int, service Service, option CheckpointOptions)
 	return ""
 }
 
-func migrateService(src int, dest int, service Service, copt CheckpointOptions, ropt RunOptions, sopt StartOptions, stopSrc bool) {
+func migrateService(src string, dest string, service Service, copt CheckpointOptions, ropt RunOptions, sopt StartOptions, stopSrc bool) {
 
 	ropt.ImageURL = checkpointService(src, service, copt)
 	//Let user manage what port there want to use
@@ -121,13 +120,18 @@ func addService(name string, image string) (Service, int) {
 	}
 }
 
-func addWorker(ipAddrPort string) Worker {
+func addWorker(worker_id string, ipAddrPort string) Worker {
 	newWorker := Worker{
 		IpAddrPort: ipAddrPort,
 		Status:     "new",
 	}
-	workers = append(workers, newWorker)
-	return newWorker
+	if _, ok := workers[worker_id]; !ok {
+		workers[worker_id] = newWorker
+		return newWorker
+	} else {
+		fmt.Printf("Worker with id %s already existed\n", worker_id)
+		return newWorker
+	}
 }
 
 // TODO TEST
