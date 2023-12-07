@@ -64,6 +64,7 @@ func migrateService(src string, dest string, service Service, copt CheckpointOpt
 		return
 	}
 	startServiceContainer(workers[dest], sopt)
+	time.Sleep(100 * time.Millisecond) //If too fast ffd may not ready
 	runService(workers[dest], service, ropt)
 	if stopSrc {
 		stopService(workers[src], service)

@@ -3,14 +3,14 @@ package main
 import "github.com/docker/docker/api/types/mount"
 
 type Worker struct {
-	IpAddrPort string //ex. 192.168.1.2:8787
-	Status     string
+	IpAddrPort string `json:"addr"` //ex. 192.168.1.2:8787
+	Status     string `json:"status"`
 }
 
 type Service struct {
-	Name     string
-	ChkFiles []string
-	Image    string
+	Name     string   `json:"name"`
+	ChkFiles []string `json:"chk_files"`
+	Image    string   `json:"image"`
 }
 
 type StartOptions struct {
@@ -44,11 +44,4 @@ type RunOptions struct {
 	LeaveStopped   bool     `json:"leave_stopped"`
 	Verbose        int      `json:"verbose"`
 	Envs           []string `json:"envs"`
-}
-
-type MigrateBody struct {
-	Copt CheckpointOptions `json:"copt"`
-	Ropt RunOptions        `json:"ropt"`
-	Sopt StartOptions      `json:"sopt"`
-	Stop bool              `json:"stop"`
 }

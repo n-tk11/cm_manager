@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	socketPath := "/var/run/myapi.sock"
+	socketPath := "/var/run/cm_man.sock"
 
 	if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
 		fmt.Printf("Error removing socket file: %v\n", err)
@@ -30,7 +30,16 @@ func main() {
 	router := gin.New()
 
 	// Define a route with a path variable
-	router.GET("/student/:name")
+	router.POST("/cm_manager/v1.0/worker", addWorkerHandler)
+	router.GET("/cm_manager/v1.0/worker", getAllWorkersHandler)
+	router.GET("/cm_manager/v1.0/worker/:worker_id", getWorkerHandler)
+	router.POST("/cm_manager/v1.0/service", addServiceHandler)
+	router.GET("/cm_manager/v1.0/service", getAllServicesHandler)
+	router.GET("/cm_manager/v1.0/service/:name", getServiceHandler)
+	router.POST("/cm_manager/v1.0/start/:worker_id", startServiceHandler)
+	router.POST("/cm_manager/v1.0/run/:worker_id/:service", runServiceHandler)
+	router.POST("/cm_manager/v1.0/checkpoint/:worker_id/:service", checkpointServiceHandler)
+	router.POST("/cm_manager/v1.0/migrate/:service", migrateServiceHandler)
 
 	// Use the router as the handler for the server
 	http.Serve(listener, router)

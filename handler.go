@@ -3,33 +3,61 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
+type workerReq struct {
+	Worker_id string `json:"worker_id"`
+	Addr      string `json:"addr"`
+}
+
+type serviceReq struct {
+	Name  string `json:"name"`
+	Image string `json:"image"`
+}
+
+type MigrateBody struct {
+	Copt CheckpointOptions `json:"copt"`
+	Ropt RunOptions        `json:"ropt"`
+	Sopt StartOptions      `json:"sopt"`
+	Stop bool              `json:"stop"`
+}
+
 func addWorkerHandler(c *gin.Context) {
 
-	// Extract path variable
-	addr := c.Query("addr")
+	var requestBody workerReq
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON"})
+		return
+	}
 
-	addWorker(addr)
+	if _, ok := workers[requestBody.Worker_id]; ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Worker already exists"})
+		return
+	}
+	addWorker(requestBody.Worker_id, requestBody.Addr)
 
-	response := fmt.Sprintf("worker_id %s with address %s added", strconv.Itoa(worker_count), addr)
+	response := fmt.Sprintf("worker_id %s with address %s added", requestBody.Worker_id, requestBody.Addr)
 
-	worker_count += 1
 	// Respond with the result
 	c.String(http.StatusOK, response)
 }
 
 func addServiceHandler(c *gin.Context) {
 
-	name := c.Param("name")
-	image := c.Query("image")
+	var requestBody serviceReq
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON"})
+		return
+	}
+	if _, ok := services[requestBody.Name]; ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Service already exists"})
+		return
+	}
+	addService(requestBody.Name, requestBody.Image)
 
-	addService(name, image)
-
-	response := fmt.Sprintf("service %s with image %s added", name, image)
+	response := fmt.Sprintf("service %s with image %s added", requestBody.Name, requestBody.Image)
 
 	c.String(http.StatusOK, response)
 }
@@ -42,14 +70,10 @@ func startServiceHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON"})
 		return
 	}
-	id, err := strconv.Atoi(worker_id)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid parameter"})
-		return
-	}
-	startServiceContainer(workers[id], requestBody)
 
-	response := fmt.Sprintf("Container of service %s with of worker %d started", requestBody.ContainerName, id)
+	startServiceContainer(workers[worker_id], requestBody)
+
+	response := fmt.Sprintf("Container of service %s with of worker %s started", requestBody.ContainerName, worker_id)
 
 	c.String(http.StatusOK, response)
 }
@@ -63,14 +87,26 @@ func runServiceHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON"})
 		return
 	}
-	id, err := strconv.Atoi(worker_id)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid parameter"})
+
+	runService(workers[worker_id], services[service], requestBody)
+
+	response := fmt.Sprintf("service %s of worker %s is running", service, worker_id)
+
+	c.String(http.StatusOK, response)
+}
+
+func checkpointServiceHandler(c *gin.Context) {
+	worker_id := c.Param("worker_id")
+	service := c.Param("service")
+	var requestBody CheckpointOptions
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON"})
 		return
 	}
-	runService(workers[id], services[service], requestBody)
 
-	response := fmt.Sprintf("service %s with of worker %d is running", service, id)
+	checkpointService(worker_id, services[service], requestBody)
+
+	response := fmt.Sprintf("service %s of worker %s is checkpointed", service, worker_id)
 
 	c.String(http.StatusOK, response)
 }
@@ -86,19 +122,41 @@ func migrateServiceHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON"})
 		return
 	}
-	src_id, err := strconv.Atoi(src)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid parameter"})
-		return
-	}
-	dest_id, err := strconv.Atoi(dest)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid parameter"})
-		return
-	}
-	migrateService(src_id, dest_id, services[service], requestBody.Copt, requestBody.Ropt, requestBody.Sopt, requestBody.Stop)
+
+	migrateService(src, dest, services[service], requestBody.Copt, requestBody.Ropt, requestBody.Sopt, requestBody.Stop)
 
 	response := fmt.Sprintf("service %s migrated from worker %s to worker %s", service, src, dest)
 
 	c.String(http.StatusOK, response)
+}
+
+func getAllWorkersHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, workers)
+}
+
+func getAllServicesHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, services)
+}
+
+func getWorkerHandler(c *gin.Context) {
+	worker_id := c.Param("worker_id")
+
+	if _, ok := workers[worker_id]; !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Worker not found"})
+		return
+	}
+	c.JSON(http.StatusOK, workers[worker_id])
+}
+
+func getServiceHandler(c *gin.Context) {
+	service := c.Param("name")
+	if _, ok := services[service]; !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Service not found"})
+		return
+	}
+	if _, ok := services[service]; !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Service not found"})
+		return
+	}
+	c.JSON(http.StatusOK, services[service])
 }
