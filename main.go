@@ -9,7 +9,7 @@ import (
 func main() {
 	var i int
 	runopt := RunOptions{
-		AppArgs:        "bash -c 'for i in $(seq 100); do echo $i > /checkpointfs/ff_out; sleep 1; done'",
+		AppArgs:        "bash -c 'for i in $(seq 100); do echo $i > /tmp/ff_out; sleep 1; done'",
 		ImageURL:       "file:/checkpointfs/ff",
 		OnAppReady:     "",
 		PassphraseFile: "",
@@ -36,19 +36,19 @@ func main() {
 		Source: "/mnt/checkpointfs",
 		Target: "/checkpointfs",
 	}
-	secondMount := mount.Mount{
+	secdMount := mount.Mount{
 		Type:   "bind",
-		Source: "/home/tul/MyProj/controller/services/ff",
-		Target: "/opt/controller",
+		Source: "/tmp",
+		Target: "/tmp",
 	}
-	mounts := []mount.Mount{oneMount, secondMount}
+	mounts := []mount.Mount{oneMount, secdMount}
 	startopt := StartOptions{
-		services["ff"].Name,
-		services["ff"].Image,
-		"80:80",
-		[]string{},
-		mounts,
-		[]string{},
+		ContainerName: services["ff"].Name,
+		Image:         services["ff"].Image,
+		AppPort:       "80:80",
+		Envs:          []string{},
+		Mounts:        mounts,
+		Caps:          []string{},
 	}
 	for {
 		fmt.Println("Choose operations")
@@ -57,25 +57,40 @@ func main() {
 		fmt.Println("3 addWorker")
 		fmt.Println("4 checkpointService")
 		fmt.Println("5 runService")
-		fmt.Println("6 checkpoint")
+		fmt.Println("6 migrate")
 		fmt.Scan(&i)
 		if i == 1 {
 			fmt.Println("addService: name img")
 
 			addService("ff", "ffdev:c4")
+			startopt.ContainerName = services["ff"].Name
+			startopt.Image = services["ff"].Image
 		} else if i == 2 {
+			var x int
+			fmt.Scan(&x)
 			fmt.Println("startService")
-			startServiceContainer(workers[0], startopt)
+			startServiceContainer(workers[x], startopt)
 		} else if i == 3 {
 			var w string
 			fmt.Scan(&w)
 			addWorker(w)
 		} else if i == 4 {
-			checkpointService(workers[0], services["ff"], checkopt)
+			var x int
+			fmt.Scan(&x)
+			checkpointService(x, services["ff"], checkopt)
 		} else if i == 5 {
-			runService(workers[0], services["ff"], runopt)
+			var x int
+			fmt.Scan(&x)
+			runService(workers[x], services["ff"], runopt)
 		} else if i == 6 {
-			migrateService(workers[0], workers[1], services["ff"], checkopt, runopt, startopt, true)
+			startopt.Mounts[0].Type = "volume"
+			startopt.Mounts[0].Source = "chkfs"
+			startopt.Mounts[0].Target = "/checkpointfs"
+			var x, y int
+			fmt.Scan(&x)
+			fmt.Scan(&y)
+			migrateService(x, y, services["ff"], checkopt, runopt, startopt, true)
+
 		}
 	}
 }

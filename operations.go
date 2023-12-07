@@ -6,19 +6,26 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 var services = make(map[string]Service)
 var workers = []Worker{}
 
-func checkpointService(worker Worker, service Service, option CheckpointOptions) {
+func checkpointService(worker_id int, service Service, option CheckpointOptions) string {
 
-	url := "http://" + worker.IpAddrPort + "/cm_checkpoint/" + service.Name
+	url := "http://" + workers[worker_id].IpAddrPort + "/cm_checkpoint/" + service.Name
+	currentTime := time.Now().UTC()
 
+	// Format the time in ISO 8601 format
+	iso8601Format := "2006-01-02T15:04:05Z07:00"
+	iso8601Time := currentTime.Format(iso8601Format)
+	option.ImgUrl = "file:/checkpointfs/" + service.Name + "_" + strconv.Itoa(worker_id) + "_" + iso8601Time
 	requestBody, err := json.Marshal(option)
 	if err != nil {
 		fmt.Println("Error marshalling JSON:", err)
-		return
+		return ""
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
@@ -29,7 +36,7 @@ func checkpointService(worker Worker, service Service, option CheckpointOptions)
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error sending the request")
-		return
+		return ""
 	}
 	fmt.Println("Request sent to controller")
 	defer resp.Body.Close()
@@ -37,23 +44,34 @@ func checkpointService(worker Worker, service Service, option CheckpointOptions)
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading the responseBody")
-		return
+		return ""
 	}
 	fmt.Printf("%d\n %s\n", resp.StatusCode, string(body))
+	if resp.StatusCode == 200 {
+		fmt.Printf("Checkpoint successfully the image name %s\n", option.ImgUrl)
+		return option.ImgUrl
+	}
+	fmt.Println("Checkpoint failed")
+	return ""
 }
 
-func migrateService(src Worker, dest Worker, service Service, copt CheckpointOptions, ropt RunOptions, sopt StartOptions, stopSrc bool) {
+func migrateService(src int, dest int, service Service, copt CheckpointOptions, ropt RunOptions, sopt StartOptions, stopSrc bool) {
 
-	checkpointService(src, service, copt)
+	ropt.ImageURL = checkpointService(src, service, copt)
 	//Let user manage what port there want to use
-	startServiceContainer(dest, sopt)
-	runService(dest, service, ropt)
+	if ropt.ImageURL == "" {
+		fmt.Println("migrate failed")
+		return
+	}
+	startServiceContainer(workers[dest], sopt)
+	runService(workers[dest], service, ropt)
 	if stopSrc {
-		stopService(src, service)
+		stopService(workers[src], service)
 	}
 }
 
 func startServiceContainer(worker Worker, startBody StartOptions) {
+	fmt.Printf("Starting service %s\n", startBody.ContainerName)
 	if _, ok := services[startBody.ContainerName]; ok {
 		url := "http://" + worker.IpAddrPort + "/cm_start"
 		reqJson := startBody
