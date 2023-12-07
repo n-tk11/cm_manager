@@ -11,6 +11,7 @@ import (
 )
 
 var services = make(map[string]Service)
+var worker_count = 0
 var workers = []Worker{}
 
 func checkpointService(worker_id int, service Service, option CheckpointOptions) string {

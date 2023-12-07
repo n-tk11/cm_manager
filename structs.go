@@ -45,3 +45,10 @@ type RunOptions struct {
 	Verbose        int      `json:"verbose"`
 	Envs           []string `json:"envs"`
 }
+
+type MigrateBody struct {
+	Copt CheckpointOptions `json:"copt"`
+	Ropt RunOptions        `json:"ropt"`
+	Sopt StartOptions      `json:"sopt"`
+	Stop bool              `json:"stop"`
+}
