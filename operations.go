@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/docker/docker/api/types/mount"
 )
 
 var services = make(map[string]Service)
@@ -44,27 +42,21 @@ func checkpointService(worker Worker, service Service, option CheckpointOptions)
 	fmt.Printf("%d\n %s\n", resp.StatusCode, string(body))
 }
 
-func migrateService(src Worker, dest Worker, service Service, copt CheckpointOptions, ropt RunOptions, stopSrc bool) {
+func migrateService(src Worker, dest Worker, service Service, copt CheckpointOptions, ropt RunOptions, sopt StartOptions, stopSrc bool) {
 
 	checkpointService(src, service, copt)
 	//Let user manage what port there want to use
+	startServiceContainer(dest, sopt)
 	runService(dest, service, ropt)
 	if stopSrc {
 		stopService(src, service)
 	}
 }
 
-func startServiceContainer(worker Worker, serviceName string, appPort string, envs []string, mounts []mount.Mount, caps []string) {
-	if service, ok := services[serviceName]; ok {
+func startServiceContainer(worker Worker, startBody StartOptions) {
+	if _, ok := services[startBody.ContainerName]; ok {
 		url := "http://" + worker.IpAddrPort + "/cm_start"
-		reqJson := StartBody{
-			ContainerName: service.Name,
-			Image:         service.Image,
-			AppPort:       appPort,
-			Envs:          envs,
-			Mounts:        mounts,
-			Caps:          caps,
-		}
+		reqJson := startBody
 
 		requestBody, err := json.Marshal(reqJson)
 		if err != nil {

@@ -13,7 +13,7 @@ type Service struct {
 	Image    string
 }
 
-type StartBody struct {
+type StartOptions struct {
 	ContainerName string        `json:"container_name"`
 	Image         string        `json:"image"`
 	AppPort       string        `json:"app_port"`
