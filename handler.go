@@ -41,7 +41,7 @@ func addWorkerHandler(c *gin.Context) {
 	response := fmt.Sprintf("worker_id %s with address %s added", requestBody.Worker_id, requestBody.Addr)
 
 	// Respond with the result
-	c.String(http.StatusOK, response)
+	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func addServiceHandler(c *gin.Context) {
@@ -59,7 +59,7 @@ func addServiceHandler(c *gin.Context) {
 
 	response := fmt.Sprintf("service %s with image %s added", requestBody.Name, requestBody.Image)
 
-	c.String(http.StatusOK, response)
+	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func startServiceHandler(c *gin.Context) {
@@ -71,11 +71,14 @@ func startServiceHandler(c *gin.Context) {
 		return
 	}
 
-	startServiceContainer(workers[worker_id], requestBody)
-
+	err := startServiceContainer(workers[worker_id], requestBody)
+	if err != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error starting container"})
+		return
+	}
 	response := fmt.Sprintf("Container of service %s with of worker %s started", requestBody.ContainerName, worker_id)
 
-	c.String(http.StatusOK, response)
+	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func runServiceHandler(c *gin.Context) {
@@ -88,11 +91,15 @@ func runServiceHandler(c *gin.Context) {
 		return
 	}
 
-	runService(workers[worker_id], services[service], requestBody)
+	err := runService(workers[worker_id], services[service], requestBody)
+	if err != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error running service"})
+		return
+	}
 
 	response := fmt.Sprintf("service %s of worker %s is running", service, worker_id)
 
-	c.String(http.StatusOK, response)
+	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func checkpointServiceHandler(c *gin.Context) {
@@ -104,11 +111,14 @@ func checkpointServiceHandler(c *gin.Context) {
 		return
 	}
 
-	checkpointService(worker_id, services[service], requestBody)
-
+	err := checkpointService(worker_id, services[service], requestBody)
+	if err != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error checkpointing service"})
+		return
+	}
 	response := fmt.Sprintf("service %s of worker %s is checkpointed", service, worker_id)
 
-	c.String(http.StatusOK, response)
+	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func migrateServiceHandler(c *gin.Context) {
@@ -123,11 +133,15 @@ func migrateServiceHandler(c *gin.Context) {
 		return
 	}
 
-	migrateService(src, dest, services[service], requestBody.Copt, requestBody.Ropt, requestBody.Sopt, requestBody.Stop)
+	err := migrateService(src, dest, services[service], requestBody.Copt, requestBody.Ropt, requestBody.Sopt, requestBody.Stop)
+	if err != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error migrating service"})
+		return
+	}
 
 	response := fmt.Sprintf("service %s migrated from worker %s to worker %s", service, src, dest)
 
-	c.String(http.StatusOK, response)
+	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func getAllWorkersHandler(c *gin.Context) {
