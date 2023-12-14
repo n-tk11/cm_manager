@@ -49,6 +49,7 @@ func checkpointService(worker_id string, service Service, option CheckpointOptio
 	fmt.Printf("%d\n %s\n", resp.StatusCode, string(body))
 	if resp.StatusCode == 200 {
 		fmt.Printf("Checkpoint successfully the image name %s\n", option.ImgUrl)
+		addCheckpointFile(service.Name, option.ImgUrl)
 		return option.ImgUrl
 	}
 	fmt.Println("Checkpoint failed")
@@ -64,7 +65,7 @@ func migrateService(src string, dest string, service Service, copt CheckpointOpt
 		return
 	}
 	startServiceContainer(workers[dest], sopt)
-	time.Sleep(100 * time.Millisecond) //If too fast ffd may not ready
+	time.Sleep(200 * time.Millisecond) //If too fast ffd may not ready
 	runService(workers[dest], service, ropt)
 	if stopSrc {
 		stopService(workers[src], service)
@@ -190,4 +191,15 @@ func runService(worker Worker, service Service, option RunOptions) {
 		return
 	}
 	fmt.Printf("%d %s\n", resp.StatusCode, string(body))
+}
+
+func addCheckpointFile(name string, path string) {
+	if s, ok := services[name]; !ok {
+		fmt.Printf("Service with name %s not found\n", name)
+	} else {
+		tmp := s
+		tmp.ChkFiles = append(tmp.ChkFiles, path)
+		services[name] = tmp
+	}
+
 }

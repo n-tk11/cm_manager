@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	manager_init()
 	socketPath := "/var/run/cm_man.sock"
 
 	if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
