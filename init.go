@@ -8,6 +8,8 @@ import (
 )
 
 func manager_init() {
+	logger := getGlobalLogger()
+	logger.Info("Initializing manager")
 	args := os.Args[1:]
 	for i := 0; i < len(args); i++ {
 		if args[i] == "--workers" || args[i] == "-w" {

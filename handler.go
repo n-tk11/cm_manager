@@ -72,7 +72,7 @@ func startServiceHandler(c *gin.Context) {
 	}
 
 	err := startServiceContainer(workers[worker_id], requestBody)
-	if err != 0 {
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error starting container"})
 		return
 	}
@@ -92,8 +92,8 @@ func runServiceHandler(c *gin.Context) {
 	}
 
 	err := runService(workers[worker_id], services[service], requestBody)
-	if err != 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error running service"})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error running service:" + err.Error()})
 		return
 	}
 
@@ -107,13 +107,13 @@ func checkpointServiceHandler(c *gin.Context) {
 	service := c.Param("service")
 	var requestBody CheckpointOptions
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON:"})
 		return
 	}
 
-	err := checkpointService(worker_id, services[service], requestBody)
-	if err != "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error checkpointing service"})
+	_, err := checkpointService(worker_id, services[service], requestBody)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error checkpointing service:" + err.Error()})
 		return
 	}
 	response := fmt.Sprintf("service %s of worker %s is checkpointed", service, worker_id)
@@ -134,8 +134,8 @@ func migrateServiceHandler(c *gin.Context) {
 	}
 
 	err := migrateService(src, dest, services[service], requestBody.Copt, requestBody.Ropt, requestBody.Sopt, requestBody.Stop)
-	if err != 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error migrating service"})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error migrating service:" + err.Error()})
 		return
 	}
 

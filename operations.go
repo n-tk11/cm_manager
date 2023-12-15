@@ -3,18 +3,21 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 var services = make(map[string]Service)
 var worker_count = 0
 var workers = make(map[string]Worker)
 
-func checkpointService(worker_id string, service Service, option CheckpointOptions) string {
-
+func checkpointService(worker_id string, service Service, option CheckpointOptions) (string, error) {
+	logger.Info("Checkpointing service", zap.String("service", service.Name))
 	url := "http://" + workers[worker_id].IpAddrPort + "/cm_controller/v1/checkpoint/" + service.Name
 	currentTime := time.Now().UTC()
 
@@ -24,8 +27,9 @@ func checkpointService(worker_id string, service Service, option CheckpointOptio
 	option.ImgUrl = "file:/checkpointfs/" + service.Name + "_" + worker_id + "_" + iso8601Time
 	requestBody, err := json.Marshal(option)
 	if err != nil {
+		logger.Error("Error marshalling JSON", zap.Error(err))
 		fmt.Println("Error marshalling JSON:", err)
-		return ""
+		return "", err
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
@@ -33,107 +37,115 @@ func checkpointService(worker_id string, service Service, option CheckpointOptio
 	req.Close = true
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
+	logger.Info("Sending request to controller", zap.String("url", url))
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error sending the request")
-		return ""
+		logger.Error("Error sending the request", zap.Error(err))
+		return "", err
 	}
-	fmt.Println("Request sent to controller")
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error reading the responseBody")
-		return ""
+		logger.Error("Error reading the responseBody", zap.Error(err))
+		return "", err
 	}
 	fmt.Printf("%d\n %s\n", resp.StatusCode, string(body))
 	if resp.StatusCode == 200 {
-		fmt.Printf("Checkpoint successfully the image name %s\n", option.ImgUrl)
+		logger.Info("Checkpoint successfully the image name", zap.String("image", option.ImgUrl))
 		addCheckpointFile(service.Name, option.ImgUrl)
-		return option.ImgUrl
+		return option.ImgUrl, nil
+	} else {
+		logger.Error("Checkpoint service fail at worker", zap.String("worker", worker_id), zap.String("service", service.Name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
+		return "", fmt.Errorf("Checkpoint service fail at worker with response code %d\n", resp.StatusCode)
+
 	}
-	fmt.Println("Checkpoint failed")
-	return ""
 }
 
-func migrateService(src string, dest string, service Service, copt CheckpointOptions, ropt RunOptions, sopt StartOptions, stopSrc bool) int {
-
+// TODO add error handling
+func migrateService(src string, dest string, service Service, copt CheckpointOptions, ropt RunOptions, sopt StartOptions, stopSrc bool) error {
+	logger.Info("Migrating service", zap.String("service", service.Name))
 	sErr := startServiceContainer(workers[dest], sopt)
-	if sErr != 0 {
-		fmt.Println("Failed to start service on destination")
-		return 1
+	if sErr != nil {
+		logger.Error("Error starting service's container at destination", zap.String("serviceName", service.Name), zap.String("dest", dest), zap.Error(sErr))
+		return sErr
 	}
-	ropt.ImageURL = checkpointService(src, service, copt)
+	var cErr error
+	ropt.ImageURL, cErr = checkpointService(src, service, copt)
 	//Let user manage what port there want to use
-	if ropt.ImageURL == "" {
-		fmt.Println("Fail to checkpoint service on source")
-		return 1
+	if cErr != nil {
+		logger.Error("Error checkpoint service at source", zap.String("serviceName", service.Name), zap.String("src", src), zap.Error(cErr))
+
+		return cErr
 	}
 	//startServiceContainer(workers[dest], sopt)
 	//time.Sleep(200 * time.Millisecond) //If too fast ffd may not ready
 	rErr := runService(workers[dest], service, ropt)
-	if rErr != 0 {
-		fmt.Println("Failed to run service on destination, with start the service on source again")
+	if rErr != nil {
+		logger.Error("Failed to run service on destination, will start the service on source again", zap.String("serviceName", service.Name), zap.String("src", src), zap.String("dest", dest), zap.Error(rErr))
+
 		rErr := runService(workers[src], service, ropt)
-		if rErr != 0 {
-			fmt.Println("Failed to rerun service on source")
+		if rErr != nil {
+			logger.Error("Failed to rerun service on source", zap.String("serviceName", service.Name), zap.String("src", src), zap.Error(rErr))
 		}
-		return 1
+		return rErr
 	}
 	if stopSrc {
-		stErr, _ := stopService(workers[src], service)
-		if stErr != 200 {
-			fmt.Println("Failed to stop service on source")
-			return 1
+		stErr := stopService(workers[src], service)
+		if stErr != nil {
+			logger.Error("Failed to stop service on source", zap.String("serviceName", service.Name), zap.String("src", src), zap.Error(rErr))
+			return stErr
 		}
 	}
-	return 0
+	return nil
 }
 
-func startServiceContainer(worker Worker, startBody StartOptions) int {
-	fmt.Printf("Starting service %s\n", startBody.ContainerName)
+func startServiceContainer(worker Worker, startBody StartOptions) error {
+	logger.Info("Starting service", zap.String("service", startBody.ContainerName))
 	if _, ok := services[startBody.ContainerName]; ok {
 		url := "http://" + worker.IpAddrPort + "/cm_controller/v1/start"
 		reqJson := startBody
 
 		requestBody, err := json.Marshal(reqJson)
 		if err != nil {
-			fmt.Println("Error marshalling JSON:", err)
-			return 1
+			logger.Error("Error marshalling JSON", zap.Error(err))
+			return err
 		}
 
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
 		req.Close = true
 		req.Header.Set("Content-Type", "application/json")
 		client := &http.Client{}
+		logger.Info("Sending request to controller", zap.String("url", url))
 		resp, err := client.Do(req)
 		if err != nil {
-			fmt.Println("Error sending the request")
-			return 1
+			logger.Error("Error sending the request", zap.Error(err))
+			return err
 		}
-		fmt.Println("Request sent to controller")
+		logger.Error("Request sent to controller")
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println("Error reading the responseBody")
-			return 1
+			logger.Error("Error reading the responseBody", zap.Error(err))
+			return err
 		}
-		fmt.Printf("%d %s\n", resp.StatusCode, string(body))
+
 		if resp.StatusCode == 200 {
-			fmt.Printf("Service %s started\n", startBody.ContainerName)
-			return 0
+			logger.Info("Service's container started", zap.String("worker", worker.Id), zap.String("service", startBody.ContainerName))
+			return nil
 		} else {
-			fmt.Printf("Service %s start failed\n", startBody.ContainerName)
-			return 1
+			logger.Error("Start service's container fail at worker", zap.String("worker", worker.Id), zap.String("service", startBody.ContainerName), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
+			return fmt.Errorf("Start container fail at worker with response code %d\n", resp.StatusCode)
+
 		}
 	} else {
-		fmt.Println("Service not found, add the service first")
-		return 1
+		logger.Error("Service not found", zap.String("service", startBody.ContainerName))
+		return errors.New("Service not found")
 	}
 }
 
-func addService(name string, image string) (Service, int) {
+func addService(name string, image string) (Service, error) {
 	newService := Service{
 		Name:     name,
 		ChkFiles: []string{},
@@ -141,62 +153,73 @@ func addService(name string, image string) (Service, int) {
 	}
 	if _, ok := services[name]; !ok {
 		services[name] = newService
-		return newService, 0
+		logger.Debug("Service added", zap.String("serviceName", name))
+		return newService, nil
 	} else {
-		fmt.Printf("Service with name %s already existed\n", name)
-		return newService, 1
+		logger.Error("Service already existed", zap.String("serviceName", name))
+		return newService, errors.New("Service already existed")
 	}
 }
 
-func addWorker(worker_id string, ipAddrPort string) (Worker, int) {
+func addWorker(worker_id string, ipAddrPort string) (Worker, error) {
 	newWorker := Worker{
+		Id:         worker_id,
 		IpAddrPort: ipAddrPort,
 		Status:     "new",
 	}
 	if _, ok := workers[worker_id]; !ok {
 		workers[worker_id] = newWorker
-		return newWorker, 0
+		logger.Debug("Worker added", zap.String("workerID", worker_id))
+		return newWorker, nil
 	} else {
 		fmt.Printf("Worker with id %s already existed\n", worker_id)
-		return newWorker, 1
+		logger.Error("Worker already existed", zap.String("WorkerId", worker_id))
+		return newWorker, errors.New("Worker already existed")
 	}
 }
 
 // TODO TEST
-func stopService(worker Worker, service Service) (int, string) {
+func stopService(worker Worker, service Service) error {
+	logger.Info("Stopping service", zap.String("worker", worker.Id), zap.String("service", service.Name))
 	url := "http://" + worker.IpAddrPort + "/cm_controller/v1/stop/" + service.Name
 
 	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
-		fmt.Println("Error creating new request:", err)
-		return 1, "Error creating new request"
+		logger.Error("Error creating request", zap.Error(err))
+		return err
 	}
 	req.Close = true
 	client := &http.Client{}
+	logger.Info("Sending request to controller", zap.String("url", url))
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error sending the request")
-		return 1, "Error sending the request"
+		logger.Error("Error sending request", zap.Error(err))
+		return err
 	}
 	fmt.Println("Request sent to controller")
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		logger.Error("Error reading the response body", zap.Error(err))
 		fmt.Println("Error reading the responseBody")
-		return 1, "Error reading the responseBody"
+		return err
 	}
-	fmt.Printf("%d %s\n", resp.StatusCode, string(body))
-	return resp.StatusCode, string(body)
+	if resp.StatusCode != 200 {
+		logger.Error("Stop service fail at worker", zap.String("worker", worker.Id), zap.String("service", service.Name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
+		return fmt.Errorf("Stop service fail at worker with response code %d\n", resp.StatusCode)
+	}
+	logger.Info("Stop service at worker succesfully", zap.String("worker", worker.Id), zap.String("service", service.Name))
+	return nil
 }
 
-func runService(worker Worker, service Service, option RunOptions) int {
+func runService(worker Worker, service Service, option RunOptions) error {
 	url := "http://" + worker.IpAddrPort + "/cm_controller/v1/run/" + service.Name
-
+	logger.Info("Running service", zap.String("worker", worker.Id), zap.String("service", service.Name))
 	requestBody, err := json.Marshal(option)
 	if err != nil {
-		fmt.Println("Error marshalling JSON:", err)
-		return 1
+		logger.Error("Error marshalling JSON", zap.Error(err))
+		return err
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
@@ -204,21 +227,25 @@ func runService(worker Worker, service Service, option RunOptions) int {
 	req.Close = true
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
+	logger.Info("Sending request to controller", zap.String("url", url))
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error sending the request")
-		return 1
+		return err
 	}
 	fmt.Println("Request sent to controller")
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error reading the responseBody")
-		return 1
+		logger.Error("Error reading the responseBody", zap.Error(err))
+		return err
 	}
-	fmt.Printf("%d %s\n", resp.StatusCode, string(body))
-	return 0
+	if resp.StatusCode != 200 {
+		logger.Error("Run service fail at worker", zap.String("worker", worker.Id), zap.String("service", service.Name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
+		return fmt.Errorf("Run service fail at worker with response code %d\n", resp.StatusCode)
+	}
+	logger.Info("Run service at worker succesfully", zap.String("worker", worker.Id), zap.String("service", service.Name))
+	return nil
 }
 
 func addCheckpointFile(name string, path string) {

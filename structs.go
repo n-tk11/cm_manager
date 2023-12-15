@@ -3,6 +3,7 @@ package main
 import "github.com/docker/docker/api/types/mount"
 
 type Worker struct {
+	Id         string `json:"id"`
 	IpAddrPort string `json:"addr"` //ex. 192.168.1.2:8787
 	Status     string `json:"status"`
 }
