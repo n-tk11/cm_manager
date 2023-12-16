@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"os"
-
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 	}
 	defer listener.Close()
 
-	fmt.Printf("Listening on Unix socket: %s\n", socketPath)
+	logger.Info("Listening on Unix socket", zap.String("path", socketPath))
 
 	router := gin.New()
 
@@ -41,7 +41,21 @@ func main() {
 	router.POST("/cm_manager/v1.0/run/:worker_id/:service", runServiceHandler)
 	router.POST("/cm_manager/v1.0/checkpoint/:worker_id/:service", checkpointServiceHandler)
 	router.POST("/cm_manager/v1.0/migrate/:service", migrateServiceHandler)
+	router.DELETE("/cm_manager/v1.0/remove/:worker_id/:service", removeServiceHandler)
+	router.POST("/cm_manager/v1.0/stop/:worker_id/:service", stopServiceHandler)
 
-	// Use the router as the handler for the server
-	http.Serve(listener, router)
+	go http.Serve(listener, router)
+
+	// Create another server on a different port but use the same handler
+	anotherListener, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		fmt.Printf("Error creating server: %v\n", err)
+		return
+	}
+	defer anotherListener.Close()
+
+	logger.Info("Listening on TCP socket", zap.String("port", "8080"))
+
+	// Use the same router as the handler for the second server
+	http.Serve(anotherListener, router)
 }

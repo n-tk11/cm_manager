@@ -116,7 +116,7 @@ func checkpointServiceHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error checkpointing service:" + err.Error()})
 		return
 	}
-	response := fmt.Sprintf("service %s of worker %s is checkpointed", service, worker_id)
+	response := fmt.Sprintf("service %s of %s is checkpointed", service, worker_id)
 
 	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
@@ -139,7 +139,7 @@ func migrateServiceHandler(c *gin.Context) {
 		return
 	}
 
-	response := fmt.Sprintf("service %s migrated from worker %s to worker %s", service, src, dest)
+	response := fmt.Sprintf("service %s migrated from %s to %s", service, src, dest)
 
 	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
@@ -173,4 +173,34 @@ func getServiceHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, services[service])
+}
+
+func removeServiceHandler(c *gin.Context) {
+	worker_id := c.Param("worker_id")
+	service := c.Param("service")
+
+	err := removeService(workers[worker_id], services[service])
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error removing service:" + err.Error()})
+		return
+	}
+
+	response := fmt.Sprintf("service %s of %s is removed", service, worker_id)
+
+	c.JSON(http.StatusOK, gin.H{"msg": response})
+}
+
+func stopServiceHandler(c *gin.Context) {
+	worker_id := c.Param("worker_id")
+	service := c.Param("service")
+
+	err := stopService(workers[worker_id], services[service])
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error stopping service:" + err.Error()})
+		return
+	}
+
+	response := fmt.Sprintf("service %s of %s is stopped", service, worker_id)
+
+	c.JSON(http.StatusOK, gin.H{"msg": response})
 }

@@ -17,7 +17,7 @@ var worker_count = 0
 var workers = make(map[string]Worker)
 
 func checkpointService(worker_id string, service Service, option CheckpointOptions) (string, error) {
-	logger.Info("Checkpointing service", zap.String("service", service.Name))
+	logger.Debug("Checkpointing service", zap.String("service", service.Name))
 	url := "http://" + workers[worker_id].IpAddrPort + "/cm_controller/v1/checkpoint/" + service.Name
 	currentTime := time.Now().UTC()
 
@@ -28,7 +28,6 @@ func checkpointService(worker_id string, service Service, option CheckpointOptio
 	requestBody, err := json.Marshal(option)
 	if err != nil {
 		logger.Error("Error marshalling JSON", zap.Error(err))
-		fmt.Println("Error marshalling JSON:", err)
 		return "", err
 	}
 
@@ -37,7 +36,7 @@ func checkpointService(worker_id string, service Service, option CheckpointOptio
 	req.Close = true
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
-	logger.Info("Sending request to controller", zap.String("url", url))
+	logger.Debug("Sending request to controller", zap.String("url", url))
 	resp, err := client.Do(req)
 	if err != nil {
 		logger.Error("Error sending the request", zap.Error(err))
@@ -50,7 +49,6 @@ func checkpointService(worker_id string, service Service, option CheckpointOptio
 		logger.Error("Error reading the responseBody", zap.Error(err))
 		return "", err
 	}
-	fmt.Printf("%d\n %s\n", resp.StatusCode, string(body))
 	if resp.StatusCode == 200 {
 		logger.Info("Checkpoint successfully the image name", zap.String("image", option.ImgUrl))
 		addCheckpointFile(service.Name, option.ImgUrl)
@@ -64,7 +62,8 @@ func checkpointService(worker_id string, service Service, option CheckpointOptio
 
 // TODO add error handling
 func migrateService(src string, dest string, service Service, copt CheckpointOptions, ropt RunOptions, sopt StartOptions, stopSrc bool) error {
-	logger.Info("Migrating service", zap.String("service", service.Name))
+	logger.Debug("Migrating service", zap.String("service", service.Name))
+	migrateStart := time.Now()
 	sErr := startServiceContainer(workers[dest], sopt)
 	if sErr != nil {
 		logger.Error("Error starting service's container at destination", zap.String("serviceName", service.Name), zap.String("dest", dest), zap.Error(sErr))
@@ -97,11 +96,14 @@ func migrateService(src string, dest string, service Service, copt CheckpointOpt
 			return stErr
 		}
 	}
+	migrateEnd := time.Since(migrateStart)
+	logger.Info("Migrate service successfully", zap.String("service", service.Name), zap.String("src", src), zap.String("dest", dest), zap.Duration("time", migrateEnd))
+
 	return nil
 }
 
 func startServiceContainer(worker Worker, startBody StartOptions) error {
-	logger.Info("Starting service", zap.String("service", startBody.ContainerName))
+	logger.Debug("Starting service", zap.String("service", startBody.ContainerName))
 	if _, ok := services[startBody.ContainerName]; ok {
 		url := "http://" + worker.IpAddrPort + "/cm_controller/v1/start"
 		reqJson := startBody
@@ -116,7 +118,7 @@ func startServiceContainer(worker Worker, startBody StartOptions) error {
 		req.Close = true
 		req.Header.Set("Content-Type", "application/json")
 		client := &http.Client{}
-		logger.Info("Sending request to controller", zap.String("url", url))
+		logger.Debug("Sending request to controller", zap.String("url", url))
 		resp, err := client.Do(req)
 		if err != nil {
 			logger.Error("Error sending the request", zap.Error(err))
@@ -172,7 +174,6 @@ func addWorker(worker_id string, ipAddrPort string) (Worker, error) {
 		logger.Debug("Worker added", zap.String("workerID", worker_id))
 		return newWorker, nil
 	} else {
-		fmt.Printf("Worker with id %s already existed\n", worker_id)
 		logger.Error("Worker already existed", zap.String("WorkerId", worker_id))
 		return newWorker, errors.New("Worker already existed")
 	}
@@ -180,7 +181,7 @@ func addWorker(worker_id string, ipAddrPort string) (Worker, error) {
 
 // TODO TEST
 func stopService(worker Worker, service Service) error {
-	logger.Info("Stopping service", zap.String("worker", worker.Id), zap.String("service", service.Name))
+	logger.Debug("Stopping service", zap.String("worker", worker.Id), zap.String("service", service.Name))
 	url := "http://" + worker.IpAddrPort + "/cm_controller/v1/stop/" + service.Name
 
 	req, err := http.NewRequest("POST", url, nil)
@@ -190,19 +191,18 @@ func stopService(worker Worker, service Service) error {
 	}
 	req.Close = true
 	client := &http.Client{}
-	logger.Info("Sending request to controller", zap.String("url", url))
+	logger.Debug("Sending request to controller", zap.String("url", url))
 	resp, err := client.Do(req)
 	if err != nil {
 		logger.Error("Error sending request", zap.Error(err))
 		return err
 	}
-	fmt.Println("Request sent to controller")
+	logger.Debug("Request sent to controller")
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logger.Error("Error reading the response body", zap.Error(err))
-		fmt.Println("Error reading the responseBody")
 		return err
 	}
 	if resp.StatusCode != 200 {
@@ -215,7 +215,7 @@ func stopService(worker Worker, service Service) error {
 
 func runService(worker Worker, service Service, option RunOptions) error {
 	url := "http://" + worker.IpAddrPort + "/cm_controller/v1/run/" + service.Name
-	logger.Info("Running service", zap.String("worker", worker.Id), zap.String("service", service.Name))
+	logger.Debug("Running service", zap.String("worker", worker.Id), zap.String("service", service.Name))
 	requestBody, err := json.Marshal(option)
 	if err != nil {
 		logger.Error("Error marshalling JSON", zap.Error(err))
@@ -227,12 +227,12 @@ func runService(worker Worker, service Service, option RunOptions) error {
 	req.Close = true
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
-	logger.Info("Sending request to controller", zap.String("url", url))
+	logger.Debug("Sending request to controller", zap.String("url", url))
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
-	fmt.Println("Request sent to controller")
+	logger.Debug("Request sent to controller")
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
@@ -257,4 +257,33 @@ func addCheckpointFile(name string, path string) {
 		services[name] = tmp
 	}
 
+}
+
+func removeService(worker Worker, service Service) error {
+	url := "http://" + worker.IpAddrPort + "/cm_controller/v1/run/" + service.Name
+	logger.Debug("Removing service", zap.String("worker", worker.Id), zap.String("service", service.Name))
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(nil))
+
+	req.Close = true
+	client := &http.Client{}
+	logger.Debug("Sending request to controller", zap.String("url", url))
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	logger.Debug("Request sent to controller")
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error("Error reading the responseBody", zap.Error(err))
+		return err
+	}
+	if resp.StatusCode != 200 {
+		logger.Error("Remove service fail at worker", zap.String("worker", worker.Id), zap.String("service", service.Name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
+		return fmt.Errorf("Remove service fail at worker with response code %d\n", resp.StatusCode)
+	}
+	logger.Info("Remove service at worker succesfully", zap.String("worker", worker.Id), zap.String("service", service.Name))
+	return nil
 }

@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 func manager_init() {
 	logger := getGlobalLogger()
-	logger.Info("Initializing manager")
+	logger.Debug("Initializing manager")
 	args := os.Args[1:]
 	for i := 0; i < len(args); i++ {
 		if args[i] == "--workers" || args[i] == "-w" {
@@ -26,7 +28,7 @@ func manager_init() {
 func worker_init(workerPath string) {
 	file, err := os.Open(workerPath)
 	if err != nil {
-		fmt.Println("Error opening WorkerFile:", err)
+		logger.Error("Error opening WorkerFile", zap.Error(err))
 		return
 	}
 	defer file.Close()
@@ -47,14 +49,14 @@ func worker_init(workerPath string) {
 
 	// Check for errors during scanning
 	if err := scanner.Err(); err != nil {
-		fmt.Println("Error reading WorkerFile:", err)
+		logger.Error("Error reading WorkerFile", zap.Error(err))
 	}
 }
 
 func service_init(servicePath string) {
 	file, err := os.Open(servicePath)
 	if err != nil {
-		fmt.Println("Error opening ServiceFile:", err)
+		logger.Error("Error opening ServiceFile", zap.Error(err))
 		return
 	}
 	defer file.Close()
@@ -75,7 +77,7 @@ func service_init(servicePath string) {
 
 	// Check for errors during scanning
 	if err := scanner.Err(); err != nil {
-		fmt.Println("Error reading ServiceFile:", err)
+		logger.Error("Error reading ServiceFile", zap.Error(err))
 	}
 }
 
