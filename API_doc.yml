@@ -1,0 +1,142 @@
+openapi: "3.0.2"
+info:
+  title: CM Manager APIs Specification
+  version: "1.0"
+paths:
+  /cm_manager/v1.0/worker:
+    post:
+      summary: Add a worker
+      parameters:
+        - name: body
+          in: body
+          description: Worker object
+          required: true
+          schema:
+            $ref: "#/components/schemas/Worker"
+    get:
+      summary: Get all workers
+
+  /cm_manager/v1.0/worker/{worker_id}:
+    get:
+      summary: Get a worker
+      parameters:
+        - name: worker_id
+          in: path
+          description: ID of the worker
+          required: true
+          schema:
+            type: string
+
+  /cm_manager/v1.0/service:
+    post:
+      summary: Add a service
+      parameters:
+        - name: body
+          in: body
+          description: Service object
+          required: true
+          schema:
+            $ref: "#/components/schemas/Service"
+    get:
+      summary: Get all services
+
+  /cm_manager/v1.0/service/{name}:
+    get:
+      summary: Get a service
+      parameters:
+        - name: name
+          in: path
+          description: Name of the service
+          required: true
+          schema:
+            type: string
+
+  /cm_manager/v1.0/start/{worker_id}:
+    post:
+      summary: Start a service
+      parameters:
+        - name: worker_id
+          in: path
+          description: ID of the worker
+          required: true
+          schema:
+            type: string
+
+  /cm_manager/v1.0/run/{worker_id}/{service}:
+    post:
+      summary: Run a service
+      parameters:
+        - name: worker_id
+          in: path
+          description: ID of the worker
+          required: true
+          schema:
+            type: string
+        - name: service
+          in: path
+          description: Name of the service
+          required: true
+          schema:
+            type: string
+
+  /cm_manager/v1.0/checkpoint/{worker_id}/{service}:
+    post:
+      summary: Checkpoint a service
+      parameters:
+        - name: worker_id
+          in: path
+          description: ID of the worker
+          required: true
+          schema:
+            type: string
+        - name: service
+          in: path
+          description: Name of the service
+          required: true
+          schema:
+            type: string
+
+  /cm_manager/v1.0/migrate/{service}:
+    post:
+      summary: Migrate a service
+      parameters:
+        - name: service
+          in: path
+          description: Name of the service
+          required: true
+          schema:
+            type: string
+
+  /cm_manager/v1.0/remove/{worker_id}/{service}:
+    delete:
+      summary: Remove a service
+      parameters:
+        - name: worker_id
+          in: path
+          description: ID of the worker
+          required: true
+          schema:
+            type: string
+        - name: service
+          in: path
+          description: Name of the service
+          required: true
+          schema:
+            type: string
+
+  /cm_manager/v1.0/stop/{worker_id}/{service}:
+    post:
+      summary: Stop a service
+      parameters:
+        - name: worker_id
+          in: path
+          description: ID of the worker
+          required: true
+          schema:
+            type: string
+        - name: service
+          in: path
+          description: Name of the service
+          required: true
+          schema:
+            type: string
