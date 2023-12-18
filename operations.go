@@ -124,7 +124,7 @@ func startServiceContainer(worker Worker, startBody StartOptions) error {
 			logger.Error("Error sending the request", zap.Error(err))
 			return err
 		}
-		logger.Error("Request sent to controller")
+		logger.Debug("Request sent to controller")
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
@@ -179,7 +179,6 @@ func addWorker(worker_id string, ipAddrPort string) (Worker, error) {
 	}
 }
 
-// TODO TEST
 func stopService(worker Worker, service Service) error {
 	logger.Debug("Stopping service", zap.String("worker", worker.Id), zap.String("service", service.Name))
 	url := "http://" + worker.IpAddrPort + "/cm_controller/v1/stop/" + service.Name
@@ -260,10 +259,10 @@ func addCheckpointFile(name string, path string) {
 }
 
 func removeService(worker Worker, service Service) error {
-	url := "http://" + worker.IpAddrPort + "/cm_controller/v1/run/" + service.Name
+	url := "http://" + worker.IpAddrPort + "/cm_controller/v1/remove/" + service.Name
 	logger.Debug("Removing service", zap.String("worker", worker.Id), zap.String("service", service.Name))
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(nil))
+	req, err := http.NewRequest("DELETE", url, bytes.NewBuffer(nil))
 
 	req.Close = true
 	client := &http.Client{}
