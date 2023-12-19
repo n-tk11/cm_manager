@@ -168,10 +168,6 @@ func getServiceHandler(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Service not found"})
 		return
 	}
-	if _, ok := services[service]; !ok {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Service not found"})
-		return
-	}
 	c.JSON(http.StatusOK, services[service])
 }
 

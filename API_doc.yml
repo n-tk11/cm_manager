@@ -5,19 +5,42 @@ info:
 paths:
   /cm_manager/v1.0/worker:
     post:
+      tags:
+        - "Worker"
       summary: Add a worker
-      parameters:
-        - name: body
-          in: body
-          description: Worker object
-          required: true
-          schema:
-            $ref: "#/components/schemas/Worker"
+      description: Add a worker to the CM Manager
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Worker"
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
     get:
+      tags:
+        - "Worker"
       summary: Get all workers
-
+      description: Get all workers from the CM Manager
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Worker"
+        "500":
+          description: Internal Server Error
   /cm_manager/v1.0/worker/{worker_id}:
     get:
+      tags:
+        - "Worker"
       summary: Get a worker
       parameters:
         - name: worker_id
@@ -26,22 +49,55 @@ paths:
           required: true
           schema:
             type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Worker"
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
 
   /cm_manager/v1.0/service:
     post:
+      tags:
+        - "Service"
       summary: Add a service
-      parameters:
-        - name: body
-          in: body
-          description: Service object
-          required: true
-          schema:
-            $ref: "#/components/schemas/Service"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Service"
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
     get:
+      tags:
+        - "Service"
       summary: Get all services
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Service"
+        "500":
+          description: Internal Server Error
 
   /cm_manager/v1.0/service/{name}:
     get:
+      tags:
+        - "Service"
       summary: Get a service
       parameters:
         - name: name
@@ -50,9 +106,22 @@ paths:
           required: true
           schema:
             type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
 
   /cm_manager/v1.0/start/{worker_id}:
     post:
+      tags:
+        - "Operation"
       summary: Start a service
       parameters:
         - name: worker_id
@@ -61,9 +130,23 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartOptions"
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
 
   /cm_manager/v1.0/run/{worker_id}/{service}:
     post:
+      tags:
+        - "Operation"
       summary: Run a service
       parameters:
         - name: worker_id
@@ -78,9 +161,23 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunOptions"
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
 
   /cm_manager/v1.0/checkpoint/{worker_id}/{service}:
     post:
+      tags:
+        - "Operation"
       summary: Checkpoint a service
       parameters:
         - name: worker_id
@@ -95,9 +192,23 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckpointOptions"
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
 
   /cm_manager/v1.0/migrate/{service}:
     post:
+      tags:
+        - "Operation"
       summary: Migrate a service
       parameters:
         - name: service
@@ -106,9 +217,23 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MigrateBody"
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
 
   /cm_manager/v1.0/remove/{worker_id}/{service}:
     delete:
+      tags:
+        - "Operation"
       summary: Remove a service
       parameters:
         - name: worker_id
@@ -123,9 +248,18 @@ paths:
           required: true
           schema:
             type: string
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
 
   /cm_manager/v1.0/stop/{worker_id}/{service}:
     post:
+      tags:
+        - "Operation"
       summary: Stop a service
       parameters:
         - name: worker_id
@@ -140,3 +274,155 @@ paths:
           required: true
           schema:
             type: string
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+
+components:
+  schemas:
+    Worker:
+      type: object
+      properties:
+        worker_id:
+          type: string
+          example: "worker1"
+        addr:
+          type: string
+          example: "127.0.0.1:7878"
+    Service:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "service1"
+        image:
+          type: string
+          example: "ubuntu:latest"
+    StartOptions:
+      type: object
+      properties:
+        container_name:
+          type: string
+          example: "my-container"
+        image:
+          type: string
+          example: "ubuntu:latest"
+        app_port:
+          type: string
+          example: "8080"
+        envs:
+          type: array
+          items:
+            type: string
+          example: ["ENV1=value1", "ENV2=value2"]
+        mounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Mount"
+        caps:
+          type: array
+          items:
+            type: string
+          example: ["CAP1", "CAP2"]
+    CheckpointOptions:
+      type: object
+      properties:
+        leave_running:
+          type: boolean
+          example: false
+        image_url:
+          type: string
+          example: "https://example.com/image.jpg"
+        passphrase_file:
+          type: string
+          example: "/path/to/passphrase.txt"
+        preserved_paths:
+          type: string
+          example: "/path/to/preserved_paths"
+        num_shards:
+          type: integer
+          example: 3
+        cpu_budget:
+          type: string
+          enum:
+            - "low"
+            - "medium"
+            - "high"
+          example: "medium"
+        verbose:
+          type: integer
+          example: 1
+        envs:
+          type: array
+          items:
+            type: string
+          example: ["ENV1=value1", "ENV2=value2"]
+    RunOptions:
+      type: object
+      properties:
+        app_args:
+          type: string
+          example: "bash -c "
+        image_url:
+          type: string
+          example: "file:/path/to/image"
+        on_app_ready:
+          type: string
+          example: "./app_ready.sh"
+        passphrase_file:
+          type: string
+          example: "/path/to/passphrase.txt"
+        preserved_paths:
+          type: string
+          example: "/path/to/preserved_path:/path/to/preserved_path"
+        no_restore:
+          type: boolean
+          example: false
+        allow_bad_image:
+          type: boolean
+          example: false
+        leave_stopped:
+          type: boolean
+          example: false
+        verbose:
+          type: integer
+          example: 1
+        envs:
+          type: array
+          items:
+            type: string
+            example: ["ENV1=value1", "ENV2=value2"]
+
+    MigrateBody:
+      type: object
+      properties:
+        copt:
+          $ref: "#/components/schemas/CheckpointOptions"
+        ropt:
+          $ref: "#/components/schemas/RunOptions"
+        sopt:
+          $ref: "#/components/schemas/StartOptions"
+        stop:
+          type: boolean
+          example: false
+    Mount:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [bind, volume, tmpfs, npipe, cluster]
+          default: volume
+          example: bind
+        source:
+          type: string
+          example: "/path/to/source"
+        target:
+          type: string
+          example: "/path/to/target"
+        readonly:
+          type: boolean
+          example: false
