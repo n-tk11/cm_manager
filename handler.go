@@ -31,7 +31,7 @@ func addWorkerHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON"})
 		return
 	}
-
+	
 	if _, ok := workers[requestBody.Worker_id]; ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Worker already exists"})
 		return
@@ -65,12 +65,19 @@ func addServiceHandler(c *gin.Context) {
 func startServiceHandler(c *gin.Context) {
 
 	worker_id := c.Param("worker_id")
+	service := c.Param("service")
 	var requestBody StartOptions
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON"})
 		return
 	}
-
+	if _, ok := service[service]; !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Service not found"})
+		return
+	}
+	if requestBody.Image == "" {
+		requestBody.Image = services[requestBody.ContainerName].Image
+	}
 	err := startServiceContainer(workers[worker_id], requestBody)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error starting container"})

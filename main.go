@@ -37,7 +37,7 @@ func main() {
 	router.POST("/cm_manager/v1.0/service", addServiceHandler)
 	router.GET("/cm_manager/v1.0/service", getAllServicesHandler)
 	router.GET("/cm_manager/v1.0/service/:name", getServiceHandler)
-	router.POST("/cm_manager/v1.0/start/:worker_id", startServiceHandler)
+	router.POST("/cm_manager/v1.0/start/:worker_id/:service", startServiceHandler)
 	router.POST("/cm_manager/v1.0/run/:worker_id/:service", runServiceHandler)
 	router.POST("/cm_manager/v1.0/checkpoint/:worker_id/:service", checkpointServiceHandler)
 	router.POST("/cm_manager/v1.0/migrate/:service", migrateServiceHandler)

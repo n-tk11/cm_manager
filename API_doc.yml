@@ -118,7 +118,7 @@ paths:
         "500":
           description: Internal Server Error
 
-  /cm_manager/v1.0/start/{worker_id}:
+  /cm_manager/v1.0/start/{worker_id}/{service}}:
     post:
       tags:
         - "Operation"
@@ -127,6 +127,12 @@ paths:
         - name: worker_id
           in: path
           description: ID of the worker
+          required: true
+          schema:
+            type: string
+        - name: service
+          in: path
+          description: Name of the service
           required: true
           schema:
             type: string
@@ -311,6 +317,7 @@ components:
         image:
           type: string
           example: "ubuntu:latest"
+          description: "Image name,if not specified, use the image in the service"
         app_port:
           type: string
           example: "8080"
