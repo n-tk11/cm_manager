@@ -31,7 +31,7 @@ func addWorkerHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON"})
 		return
 	}
-	
+
 	if _, ok := workers[requestBody.Worker_id]; ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Worker already exists"})
 		return
@@ -71,7 +71,7 @@ func startServiceHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON"})
 		return
 	}
-	if _, ok := service[service]; !ok {
+	if _, ok := services[service]; !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Service not found"})
 		return
 	}
@@ -152,6 +152,9 @@ func migrateServiceHandler(c *gin.Context) {
 }
 
 func getAllWorkersHandler(c *gin.Context) {
+	for _, v := range workers {
+		updateWorkerServices(v.Id)
+	}
 	c.JSON(http.StatusOK, workers)
 }
 
@@ -166,6 +169,7 @@ func getWorkerHandler(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Worker not found"})
 		return
 	}
+	updateWorkerServices(worker_id)
 	c.JSON(http.StatusOK, workers[worker_id])
 }
 

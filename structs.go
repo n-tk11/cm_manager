@@ -3,9 +3,15 @@ package main
 import "github.com/docker/docker/api/types/mount"
 
 type Worker struct {
-	Id         string `json:"id"`
-	IpAddrPort string `json:"addr"` //ex. 192.168.1.2:8787
-	Status     string `json:"status"`
+	Id         string            `json:"id"`
+	IpAddrPort string            `json:"addr"` //ex. 192.168.1.2:8787
+	Status     string            `json:"status"`
+	Services   []ServiceInWorker `json:"services"`
+}
+
+type ServiceInWorker struct {
+	Name   string `json:"name"`
+	Stutus string `json:"status"`
 }
 
 type Service struct {
@@ -45,4 +51,30 @@ type RunOptions struct {
 	LeaveStopped   bool     `json:"leave_stopped"`
 	Verbose        int      `json:"verbose"`
 	Envs           []string `json:"envs"`
+}
+
+func addRunService(workerId string, service ServiceInWorker) {
+	worker := workers[workerId]
+	worker.Services = append(worker.Services, service)
+	workers[workerId] = worker
+}
+
+func deleteRunService(workerId string, service string) {
+	worker := workers[workerId]
+	for i, v := range worker.Services {
+		if v.Name == service {
+			worker.Services = append(worker.Services[:i], worker.Services[i+1:]...)
+		}
+	}
+	workers[workerId] = worker
+}
+
+func updateRunService(workerId string, service ServiceInWorker) {
+	worker := workers[workerId]
+	for i, v := range worker.Services {
+		if v.Name == service.Name {
+			worker.Services[i] = service
+		}
+	}
+	workers[workerId] = worker
 }

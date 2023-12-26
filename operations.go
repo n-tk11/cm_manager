@@ -13,7 +13,8 @@ import (
 )
 
 var services = make(map[string]Service)
-var worker_count = 0
+
+// var worker_count = 0
 var workers = make(map[string]Worker)
 
 func checkpointService(worker_id string, service Service, option CheckpointOptions) (string, error) {
@@ -32,6 +33,10 @@ func checkpointService(worker_id string, service Service, option CheckpointOptio
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
+	if err != nil {
+		logger.Error("Error creating request", zap.Error(err))
+		return "", err
+	}
 
 	req.Close = true
 	req.Header.Set("Content-Type", "application/json")
@@ -55,7 +60,7 @@ func checkpointService(worker_id string, service Service, option CheckpointOptio
 		return option.ImgUrl, nil
 	} else {
 		logger.Error("Checkpoint service fail at worker", zap.String("worker", worker_id), zap.String("service", service.Name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
-		return "", fmt.Errorf("Checkpoint service fail at worker with response code %d\n", resp.StatusCode)
+		return "", fmt.Errorf("checkpoint service fail at worker with response code %d", resp.StatusCode)
 
 	}
 }
@@ -115,6 +120,10 @@ func startServiceContainer(worker Worker, startBody StartOptions) error {
 		}
 
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
+		if err != nil {
+			logger.Error("Error creating request", zap.Error(err))
+			return err
+		}
 		req.Close = true
 		req.Header.Set("Content-Type", "application/json")
 		client := &http.Client{}
@@ -135,10 +144,11 @@ func startServiceContainer(worker Worker, startBody StartOptions) error {
 
 		if resp.StatusCode == 200 {
 			logger.Info("Service's container started", zap.String("worker", worker.Id), zap.String("service", startBody.ContainerName))
+			addRunService(worker.Id, ServiceInWorker{Name: startBody.ContainerName, Stutus: "running"})
 			return nil
 		} else {
 			logger.Error("Start service's container fail at worker", zap.String("worker", worker.Id), zap.String("service", startBody.ContainerName), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
-			return fmt.Errorf("Start container fail at worker with response code %d\n", resp.StatusCode)
+			return fmt.Errorf("start container fail at worker with response code %d", resp.StatusCode)
 
 		}
 	} else {
@@ -168,6 +178,7 @@ func addWorker(worker_id string, ipAddrPort string) (Worker, error) {
 		Id:         worker_id,
 		IpAddrPort: ipAddrPort,
 		Status:     "new",
+		Services:   []ServiceInWorker{},
 	}
 	if _, ok := workers[worker_id]; !ok {
 		workers[worker_id] = newWorker
@@ -206,7 +217,7 @@ func stopService(worker Worker, service Service) error {
 	}
 	if resp.StatusCode != 200 {
 		logger.Error("Stop service fail at worker", zap.String("worker", worker.Id), zap.String("service", service.Name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
-		return fmt.Errorf("Stop service fail at worker with response code %d\n", resp.StatusCode)
+		return fmt.Errorf("stop service fail at worker with response code %d", resp.StatusCode)
 	}
 	logger.Info("Stop service at worker succesfully", zap.String("worker", worker.Id), zap.String("service", service.Name))
 	return nil
@@ -222,6 +233,10 @@ func runService(worker Worker, service Service, option RunOptions) error {
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
+	if err != nil {
+		logger.Error("Error creating request", zap.Error(err))
+		return err
+	}
 
 	req.Close = true
 	req.Header.Set("Content-Type", "application/json")
@@ -241,8 +256,9 @@ func runService(worker Worker, service Service, option RunOptions) error {
 	}
 	if resp.StatusCode != 200 {
 		logger.Error("Run service fail at worker", zap.String("worker", worker.Id), zap.String("service", service.Name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
-		return fmt.Errorf("Run service fail at worker with response code %d\n", resp.StatusCode)
+		return fmt.Errorf("run service fail at worker with response code %d", resp.StatusCode)
 	}
+
 	logger.Info("Run service at worker succesfully", zap.String("worker", worker.Id), zap.String("service", service.Name))
 	return nil
 }
@@ -263,7 +279,10 @@ func removeService(worker Worker, service Service) error {
 	logger.Debug("Removing service", zap.String("worker", worker.Id), zap.String("service", service.Name))
 
 	req, err := http.NewRequest("DELETE", url, bytes.NewBuffer(nil))
-
+	if err != nil {
+		logger.Error("Error creating request", zap.Error(err))
+		return err
+	}
 	req.Close = true
 	client := &http.Client{}
 	logger.Debug("Sending request to controller", zap.String("url", url))
@@ -281,8 +300,13 @@ func removeService(worker Worker, service Service) error {
 	}
 	if resp.StatusCode != 200 {
 		logger.Error("Remove service fail at worker", zap.String("worker", worker.Id), zap.String("service", service.Name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
-		return fmt.Errorf("Remove service fail at worker with response code %d\n", resp.StatusCode)
+		return fmt.Errorf("remove service fail at worker with response code %d", resp.StatusCode)
 	}
+	deleteService(service.Name)
 	logger.Info("Remove service at worker succesfully", zap.String("worker", worker.Id), zap.String("service", service.Name))
 	return nil
+}
+
+func deleteService(name string) {
+	delete(services, name)
 }
