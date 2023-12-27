@@ -19,7 +19,7 @@ func updateWorkerServices(worker_id string) error {
 		if status == "exited" || status == "stopped" {
 			deleteRunService(worker_id, v.Name)
 		} else {
-			v.Stutus = status
+			v.Status = status
 			updateRunService(worker_id, v)
 		}
 	}

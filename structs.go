@@ -11,7 +11,7 @@ type Worker struct {
 
 type ServiceInWorker struct {
 	Name   string `json:"name"`
-	Stutus string `json:"status"`
+	Status string `json:"status"`
 }
 
 type Service struct {
