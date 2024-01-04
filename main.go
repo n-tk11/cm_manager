@@ -5,7 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
-
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -29,6 +29,8 @@ func main() {
 	logger.Info("Listening on Unix socket", zap.String("path", socketPath))
 
 	router := gin.New()
+	router.Use(cors.Default())
+
 
 	// Define a route with a path variable
 	router.POST("/cm_manager/v1.0/worker", addWorkerHandler)

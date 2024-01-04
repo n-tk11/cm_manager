@@ -223,6 +223,18 @@ paths:
           required: true
           schema:
             type: string
+        - name: src
+          in: query
+          description: ID of the source worker
+          required: true
+          schema:
+            type: string
+        - name: dest
+          in: query
+          description: ID of the destination worker
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:

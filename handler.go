@@ -152,14 +152,20 @@ func migrateServiceHandler(c *gin.Context) {
 }
 
 func getAllWorkersHandler(c *gin.Context) {
+	var workerArr []Worker
 	for _, v := range workers {
 		updateWorkerServices(v.Id)
+		workerArr = append(workerArr, v)
 	}
-	c.JSON(http.StatusOK, workers)
+	c.JSON(http.StatusOK, workerArr)
 }
 
 func getAllServicesHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, services)
+	var serviceArr []Service
+	for _, v := range services {
+		serviceArr = append(serviceArr, v)
+	}
+	c.JSON(http.StatusOK, serviceArr)
 }
 
 func getWorkerHandler(c *gin.Context) {
