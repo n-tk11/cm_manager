@@ -139,7 +139,9 @@ func migrateServiceHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON"})
 		return
 	}
-
+	if requestBody.Sopt.Image == "" {
+		requestBody.Sopt.Image = services[requestBody.Sopt.ContainerName].Image
+	}
 	err := migrateService(src, dest, services[service], requestBody.Copt, requestBody.Ropt, requestBody.Sopt, requestBody.Stop)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error migrating service:" + err.Error()})
