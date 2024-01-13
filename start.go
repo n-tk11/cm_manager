@@ -49,6 +49,9 @@ func startServiceContainer(worker Worker, startBody StartOptions) error {
 		}
 
 		if resp.StatusCode == 200 {
+			config := serviceConfigs[startBody.ContainerName]
+			config.StartOpt = startBody
+			serviceConfigs[startBody.ContainerName] = config
 			logger.Info("Service's container started", zap.String("worker", worker.Id), zap.String("service", startBody.ContainerName))
 			addRunService(worker.Id, ServiceInWorker{Name: startBody.ContainerName, Status: "running"})
 			return nil

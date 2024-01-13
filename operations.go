@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/docker/docker/api/types/mount"
 	"go.uber.org/zap"
 )
 
 var services = make(map[string]Service)
+var serviceConfigs = make(map[string]ServiceConfig)
 
 // var worker_count = 0
 var workers = make(map[string]Worker)
@@ -18,8 +20,41 @@ func addService(name string, image string) (Service, error) {
 		ChkFiles: []string{},
 		Image:    image,
 	}
+	newServiceConfig := ServiceConfig{
+		StartOpt: StartOptions{
+			ContainerName: name,
+			Image:         image,
+			AppPort:       "",
+			Envs:          []string{},
+			Mounts:        []mount.Mount{},
+			Caps:          []string{},
+		},
+		RunOpt: RunOptions{
+			AppArgs:        "",
+			ImageURL:       "",
+			OnAppReady:     "",
+			PassphraseFile: "",
+			PreservedPaths: "",
+			NoRestore:      false,
+			AllowBadImage:  false,
+			LeaveStopped:   false,
+			Verbose:        0,
+			Envs:           []string{},
+		},
+		ChkOpt: CheckpointOptions{
+			LeaveRun:      false,
+			ImgUrl:        "",
+			Passphrase:    "",
+			Preserve_path: "",
+			Num_shards:    4,
+			Cpu_budget:    "medium",
+			Verbose:       0,
+			Envs:          []string{},
+		},
+	}
 	if _, ok := services[name]; !ok {
 		services[name] = newService
+		serviceConfigs[name] = newServiceConfig
 		logger.Debug("Service added", zap.String("serviceName", name))
 		return newService, nil
 	} else {

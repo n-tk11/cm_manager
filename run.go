@@ -42,9 +42,16 @@ func runService(worker Worker, service Service, option RunOptions) error {
 		return err
 	}
 	if resp.StatusCode != 200 {
+		if resp.StatusCode == 500 {
+			logger.Error("Run Error 500 will try again", zap.String("worker", worker.Id), zap.String("service", service.Name))
+			return runService(worker, service, option)
+		}
 		logger.Error("Run service fail at worker", zap.String("worker", worker.Id), zap.String("service", service.Name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
 		return fmt.Errorf("run service fail at worker with response code %d", resp.StatusCode)
 	}
+	config := serviceConfigs[service.Name]
+	config.RunOpt = option
+	serviceConfigs[service.Name] = config
 
 	logger.Info("Run service at worker succesfully", zap.String("worker", worker.Id), zap.String("service", service.Name))
 	return nil

@@ -20,6 +20,12 @@ type Service struct {
 	Image    string   `json:"image"`
 }
 
+type ServiceConfig struct {
+	StartOpt StartOptions      `json:"start_opt"`
+	RunOpt   RunOptions        `json:"run_opt"`
+	ChkOpt   CheckpointOptions `json:"chk_opt"`
+}
+
 type StartOptions struct {
 	ContainerName string        `json:"container_name"`
 	Image         string        `json:"image"`

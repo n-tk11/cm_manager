@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -31,7 +32,6 @@ func main() {
 	router := gin.New()
 	router.Use(cors.Default())
 
-
 	// Define a route with a path variable
 	router.POST("/cm_manager/v1.0/worker", addWorkerHandler)
 	router.GET("/cm_manager/v1.0/worker", getAllWorkersHandler)
@@ -39,6 +39,7 @@ func main() {
 	router.POST("/cm_manager/v1.0/service", addServiceHandler)
 	router.GET("/cm_manager/v1.0/service", getAllServicesHandler)
 	router.GET("/cm_manager/v1.0/service/:name", getServiceHandler)
+	router.GET("/cm_manager/v1.0/service/:name/config", getServiceConfigHandler)
 	router.POST("/cm_manager/v1.0/start/:worker_id/:service", startServiceHandler)
 	router.POST("/cm_manager/v1.0/run/:worker_id/:service", runServiceHandler)
 	router.POST("/cm_manager/v1.0/checkpoint/:worker_id/:service", checkpointServiceHandler)

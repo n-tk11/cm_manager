@@ -49,6 +49,9 @@ func checkpointService(worker_id string, service Service, option CheckpointOptio
 		return "", err
 	}
 	if resp.StatusCode == 200 {
+		config := serviceConfigs[service.Name]
+		config.ChkOpt = option
+		serviceConfigs[service.Name] = config
 		logger.Info("Checkpoint successfully the image name", zap.String("image", option.ImgUrl))
 		addCheckpointFile(service.Name, option.ImgUrl)
 		return option.ImgUrl, nil
