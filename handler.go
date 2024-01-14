@@ -191,7 +191,7 @@ func getAllServicesHandler(c *gin.Context) {
 	for _, v := range services {
 		serviceArr = append(serviceArr, v)
 	}
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, serviceArr)
 }
 

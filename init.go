@@ -23,6 +23,7 @@ func manager_init() {
 			service_init(servicePath)
 		}
 	}
+	scanServicesOnWorkers()
 }
 
 func worker_init(workerPath string) {
@@ -78,6 +79,22 @@ func service_init(servicePath string) {
 	// Check for errors during scanning
 	if err := scanner.Err(); err != nil {
 		logger.Error("Error reading ServiceFile", zap.Error(err))
+	}
+}
+
+func scanServicesOnWorkers() {
+	for _, worker := range workers {
+		worker_id := worker.Id
+		for _, v := range services {
+			status, err := queryServiceStatus(worker_id, v.Name)
+			if err != nil {
+				continue
+			}
+			if status == "running" || status == "standby" || status == "checkpointed" {
+				logger.Debug("Adding service to a worker(run)", zap.String("worker_id", worker_id), zap.String("service_name", v.Name), zap.String("status", status))
+				addRunService(worker_id, ServiceInWorker{Name: v.Name, Status: status})
+			}
+		}
 	}
 }
 
