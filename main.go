@@ -32,7 +32,7 @@ func main() {
 	router := gin.New()
 	router.Use(cors.Default())
 
-	// Define a route with a path variable
+	router.GET("/cm_manager/v1.0/up", upHandler)
 	router.POST("/cm_manager/v1.0/worker", addWorkerHandler)
 	router.GET("/cm_manager/v1.0/worker", getAllWorkersHandler)
 	router.GET("/cm_manager/v1.0/worker/:worker_id", getWorkerHandler)

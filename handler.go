@@ -25,6 +25,12 @@ type MigrateBody struct {
 	Stop bool              `json:"stop"`
 }
 
+func upHandler(c *gin.Context) {
+	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	response := "up"
+	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
+	c.JSON(http.StatusOK, gin.H{"msg": response})
+}
 func addWorkerHandler(c *gin.Context) {
 	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	var requestBody workerReq
