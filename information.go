@@ -71,3 +71,28 @@ func queryServiceStatus(worker_id string, service string) (string, error) {
 	}
 	return "", errors.New("service not found")
 }
+
+func isWorkerUp(worker_id string) bool {
+	url := "http://" + workers[worker_id].IpAddrPort + "/cm_controller/v1/up"
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		logger.Error("Error creating request", zap.Error(err))
+		return false
+	}
+	req.Close = true
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	logger.Debug("Sending request to controller", zap.String("url", url))
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Error("Error sending the request", zap.Error(err))
+		return false
+	}
+	logger.Debug("Request sent to controller")
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		return true
+	}
+	return false
+}

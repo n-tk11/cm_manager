@@ -137,7 +137,7 @@ func scanCheckpointFiles() {
 		if len(fields) >= 1 {
 			serviceName := fields[0]
 			if _, ok := services[serviceName]; ok {
-				addCheckpointFile(serviceName, fileName)
+				addCheckpointFile(serviceName, "file:/checkpointfs/"+fileName)
 			}
 		}
 	}

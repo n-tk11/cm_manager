@@ -26,13 +26,13 @@ type MigrateBody struct {
 }
 
 func upHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	response := "up"
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 func addWorkerHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	var requestBody workerReq
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		logger.Error("Error decoding JSON", zap.Error(err))
@@ -50,12 +50,12 @@ func addWorkerHandler(c *gin.Context) {
 	response := fmt.Sprintf("worker_id %s with address %s added", requestBody.Worker_id, requestBody.Addr)
 
 	// Respond with the result
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func addServiceHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	var requestBody serviceReq
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		logger.Error("Error decoding JSON", zap.Error(err))
@@ -71,12 +71,12 @@ func addServiceHandler(c *gin.Context) {
 
 	response := fmt.Sprintf("service %s with image %s added", requestBody.Name, requestBody.Image)
 
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func startServiceHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	worker_id := c.Param("worker_id")
 	service := c.Param("service")
 	var requestBody StartOptions
@@ -101,12 +101,12 @@ func startServiceHandler(c *gin.Context) {
 	}
 	response := fmt.Sprintf("Container of service %s with of worker %s started", requestBody.ContainerName, worker_id)
 
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func runServiceHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	worker_id := c.Param("worker_id")
 	service := c.Param("service")
 	var requestBody RunOptions
@@ -125,12 +125,12 @@ func runServiceHandler(c *gin.Context) {
 
 	response := fmt.Sprintf("service %s of worker %s is running", service, worker_id)
 
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func checkpointServiceHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	worker_id := c.Param("worker_id")
 	service := c.Param("service")
 	var requestBody CheckpointOptions
@@ -148,12 +148,12 @@ func checkpointServiceHandler(c *gin.Context) {
 	}
 	response := fmt.Sprintf("service %s of %s is checkpointed", service, worker_id)
 
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func migrateServiceHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	service := c.Param("service")
 	src := c.Query("src")
 	dest := c.Query("dest")
@@ -176,33 +176,42 @@ func migrateServiceHandler(c *gin.Context) {
 
 	response := fmt.Sprintf("service %s migrated from %s to %s", service, src, dest)
 
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func getAllWorkersHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	var workerArr []Worker
 	for _, v := range workers {
-		updateWorkerServices(v.Id)
+		if !isWorkerUp(v.Id) {
+			v.Status = "down"
+			workers[v.Id] = v
+		} else {
+			v.Status = "up"
+			workers[v.Id] = v
+			updateWorkerServices(v.Id)
+
+		}
+		//updateWorkerServices(v.Id)
 		workerArr = append(workerArr, v)
 	}
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, workerArr)
 }
 
 func getAllServicesHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	var serviceArr []Service
 	for _, v := range services {
 		serviceArr = append(serviceArr, v)
 	}
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, serviceArr)
 }
 
 func getWorkerHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	worker_id := c.Param("worker_id")
 
 	if _, ok := workers[worker_id]; !ok {
@@ -212,12 +221,12 @@ func getWorkerHandler(c *gin.Context) {
 	}
 	updateWorkerServices(worker_id)
 
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, workers[worker_id])
 }
 
 func getServiceHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	service := c.Param("name")
 	if _, ok := services[service]; !ok {
 		logger.Error("Service not found", zap.String("serviceName", service))
@@ -225,12 +234,12 @@ func getServiceHandler(c *gin.Context) {
 		return
 	}
 
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, services[service])
 }
 
 func removeServiceHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	worker_id := c.Param("worker_id")
 	service := c.Param("service")
 
@@ -243,12 +252,12 @@ func removeServiceHandler(c *gin.Context) {
 
 	response := fmt.Sprintf("service %s of %s is removed", service, worker_id)
 
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func stopServiceHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	worker_id := c.Param("worker_id")
 	service := c.Param("service")
 
@@ -261,18 +270,18 @@ func stopServiceHandler(c *gin.Context) {
 
 	response := fmt.Sprintf("service %s of %s is stopped", service, worker_id)
 
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, gin.H{"msg": response})
 }
 
 func getServiceConfigHandler(c *gin.Context) {
-	logger.Info("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	service := c.Param("name")
 	if _, ok := serviceConfigs[service]; !ok {
 		logger.Error("Service not found", zap.String("serviceName", service))
 		c.JSON(http.StatusNotFound, gin.H{"error": "Service not found"})
 		return
 	}
-	logger.Info("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, serviceConfigs[service])
 }
