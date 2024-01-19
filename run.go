@@ -10,6 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var runCount = 0
+
 func runService(worker Worker, service Service, option RunOptions) error {
 	url := "http://" + worker.IpAddrPort + "/cm_controller/v1/run/" + service.Name
 	logger.Debug("Running service", zap.String("worker", worker.Id), zap.String("service", service.Name))
@@ -42,9 +44,11 @@ func runService(worker Worker, service Service, option RunOptions) error {
 		return err
 	}
 	if resp.StatusCode != 200 {
-		if resp.StatusCode == 500 {
+		if resp.StatusCode == 500 && runCount < 1 {
+			runCount++
 			logger.Error("Run Error 500 will try again", zap.String("worker", worker.Id), zap.String("service", service.Name))
 			return runService(worker, service, option)
+
 		}
 		logger.Error("Run service fail at worker", zap.String("worker", worker.Id), zap.String("service", service.Name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
 		return fmt.Errorf("run service fail at worker with response code %d", resp.StatusCode)

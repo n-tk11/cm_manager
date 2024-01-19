@@ -24,6 +24,7 @@ func migrateService(src string, dest string, service Service, copt CheckpointOpt
 	}
 	//startServiceContainer(workers[dest], sopt)
 	//time.Sleep(200 * time.Millisecond) //If too fast ffd may not ready
+	runCount = 0
 	rErr := runService(workers[dest], service, ropt)
 	if rErr != nil {
 		logger.Error("Failed to run service on destination, will start the service on source again", zap.String("serviceName", service.Name), zap.String("src", src), zap.String("dest", dest), zap.Error(rErr))

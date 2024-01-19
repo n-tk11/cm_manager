@@ -115,7 +115,7 @@ func runServiceHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error decoding JSON"})
 		return
 	}
-
+	runCount = 0
 	err := runService(workers[worker_id], services[service], requestBody)
 	if err != nil {
 		logger.Error("Error running service", zap.Error(err))
