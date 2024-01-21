@@ -15,13 +15,14 @@ func updateWorkerServices(worker_id string) error {
 		return errors.New("worker not found")
 	}
 	for _, v := range worker.Services {
-		status, _ := queryServiceStatus(worker_id, v.Name)
-		if status == "exited" || status == "stopped" {
+		status, err := queryServiceStatus(worker_id, v.Name)
+		if err != nil {
 			deleteRunService(worker_id, v.Name)
-		} else {
-			v.Status = status
-			updateRunService(worker_id, v)
+			continue
 		}
+		v.Status = status
+		updateRunService(worker_id, v)
+
 	}
 	return nil
 }
@@ -69,7 +70,8 @@ func queryServiceStatus(worker_id string, service string) (string, error) {
 		}
 		return "", errors.New("status not found")
 	}
-	return "", errors.New("service not found")
+	logger.Error("Error getting status from controller", zap.Int("status", resp.StatusCode))
+	return "", errors.New("Error getting status from controller")
 }
 
 func isWorkerUp(worker_id string) bool {
