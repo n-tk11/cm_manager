@@ -184,15 +184,6 @@ func getAllWorkersHandler(c *gin.Context) {
 	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	var workerArr []Worker
 	for _, v := range workers {
-		// if !isWorkerUp(v.Id) {
-		// 	v.Status = "down"
-		// 	workers[v.Id] = v
-		// } else {
-		// 	v.Status = "up"
-		// 	workers[v.Id] = v
-		// 	updateWorkerServices(v.Id)
-
-		// }
 		updateWorkerServices(v.Id)
 		workerArr = append(workerArr, v)
 	}

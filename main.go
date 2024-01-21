@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -30,7 +31,12 @@ func main() {
 	logger.Info("Listening on Unix socket", zap.String("path", socketPath))
 
 	router := gin.New()
-	router.Use(cors.Default())
+
+	router.Use(
+		gin.LoggerWithWriter(gin.DefaultWriter, "/cm_manager/v1.0/heartbeat"),
+		gin.Recovery(),
+		cors.Default(),
+	)
 
 	router.GET("/cm_manager/v1.0/up", upHandler)
 	router.POST("/cm_manager/v1.0/worker", addWorkerHandler)
@@ -47,6 +53,8 @@ func main() {
 	router.DELETE("/cm_manager/v1.0/remove/:worker_id/:service", removeServiceHandler)
 	router.POST("/cm_manager/v1.0/stop/:worker_id/:service", stopServiceHandler)
 
+	router.POST("/cm_manager/v1.0/heartbeat", heatbeatHandler)
+
 	go http.Serve(listener, router)
 
 	// Create another server on a different port but use the same handler
@@ -60,5 +68,13 @@ func main() {
 	logger.Info("Listening on TCP socket", zap.String("port", "8080"))
 
 	// Use the same router as the handler for the second server
-	http.Serve(anotherListener, router)
+	go http.Serve(anotherListener, router)
+
+	go func() {
+		for range time.Tick(3 * time.Second) {
+			updateCountdown()
+		}
+	}()
+
+	select {}
 }

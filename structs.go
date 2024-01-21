@@ -7,6 +7,7 @@ type Worker struct {
 	IpAddrPort string            `json:"addr"` //ex. 192.168.1.2:8787
 	Status     string            `json:"status"`
 	Services   []ServiceInWorker `json:"services"`
+	countDown  int
 }
 
 type ServiceInWorker struct {
@@ -82,5 +83,17 @@ func updateRunService(workerId string, service ServiceInWorker) {
 			worker.Services[i] = service
 		}
 	}
+	workers[workerId] = worker
+}
+
+func setWorkerCountdown(workerId string, countDown int) {
+	worker := workers[workerId]
+	worker.countDown = countDown
+	workers[workerId] = worker
+}
+
+func setWorkerStatus(workerId string, status string) {
+	worker := workers[workerId]
+	worker.Status = status
 	workers[workerId] = worker
 }
