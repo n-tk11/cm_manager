@@ -6,13 +6,13 @@ import (
 	"go.uber.org/zap"
 )
 
-func migrateService(src string, dest string, service Service, copt CheckpointOptions, ropt RunOptions, sopt StartOptions, stopSrc bool) error {
+func migrateService(src string, dest string, service Service, copt CheckpointOptions, ropt RunOptions, sopt StartOptions, stopSrc bool) (float64, error) {
 	logger.Debug("Migrating service", zap.String("service", service.Name))
 	migrateStart := time.Now()
 	sErr := startServiceContainer(workers[dest], sopt)
 	if sErr != nil {
 		logger.Error("Error starting service's container at destination", zap.String("serviceName", service.Name), zap.String("dest", dest), zap.Error(sErr))
-		return sErr
+		return -1, sErr
 	}
 	var cErr error
 	ropt.ImageURL, cErr = checkpointService(src, service, copt)
@@ -20,7 +20,7 @@ func migrateService(src string, dest string, service Service, copt CheckpointOpt
 	if cErr != nil {
 		logger.Error("Error checkpoint service at source", zap.String("serviceName", service.Name), zap.String("src", src), zap.Error(cErr))
 
-		return cErr
+		return -1, cErr
 	}
 	//startServiceContainer(workers[dest], sopt)
 	//time.Sleep(200 * time.Millisecond) //If too fast ffd may not ready
@@ -33,17 +33,17 @@ func migrateService(src string, dest string, service Service, copt CheckpointOpt
 		if rErr != nil {
 			logger.Error("Failed to rerun service on source", zap.String("serviceName", service.Name), zap.String("src", src), zap.Error(rErr))
 		}
-		return rErr
+		return -1, rErr
 	}
 	if stopSrc {
 		stErr := stopService(workers[src], service)
 		if stErr != nil {
 			logger.Error("Failed to stop service on source", zap.String("serviceName", service.Name), zap.String("src", src), zap.Error(rErr))
-			return stErr
+			return -1, stErr
 		}
 	}
 	migrateEnd := time.Since(migrateStart)
 	logger.Info("Migrate service successfully", zap.String("service", service.Name), zap.String("src", src), zap.String("dest", dest), zap.Duration("time", migrateEnd))
 
-	return nil
+	return migrateEnd.Seconds(), nil
 }

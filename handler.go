@@ -167,7 +167,7 @@ func migrateServiceHandler(c *gin.Context) {
 	if requestBody.Sopt.Image == "" {
 		requestBody.Sopt.Image = services[requestBody.Sopt.ContainerName].Image
 	}
-	err := migrateService(src, dest, services[service], requestBody.Copt, requestBody.Ropt, requestBody.Sopt, requestBody.Stop)
+	duration, err := migrateService(src, dest, services[service], requestBody.Copt, requestBody.Ropt, requestBody.Sopt, requestBody.Stop)
 	if err != nil {
 		logger.Error("Error migrating service", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error migrating service:" + err.Error()})
@@ -177,7 +177,7 @@ func migrateServiceHandler(c *gin.Context) {
 	response := fmt.Sprintf("service %s migrated from %s to %s", service, src, dest)
 
 	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
-	c.JSON(http.StatusOK, gin.H{"msg": response})
+	c.JSON(http.StatusOK, gin.H{"msg": response, "duration": duration})
 }
 
 func getAllWorkersHandler(c *gin.Context) {
