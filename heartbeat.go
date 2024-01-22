@@ -23,6 +23,11 @@ func heatbeatHandler(c *gin.Context) {
 		return
 	}
 	workerId := body.WorkerId
+	_, ok := workers[workerId]
+	if !ok {
+		c.IndentedJSON(400, gin.H{"error": "worker not found"})
+		return
+	}
 	setWorkerCountdown(workerId, 3)
 	setWorkerStatus(workerId, "up")
 	logger.Debug("Heartbeat received from worker", zap.String("workerId", workerId))

@@ -42,6 +42,9 @@ func worker_init(workerPath string) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		// Process each line
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
 		worker_id, addr := processLine(line)
 		if worker_id == "" || addr == "" {
 			continue
@@ -70,6 +73,9 @@ func service_init(servicePath string) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		// Process each line
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
 		name, image := processLine(line)
 		if name == "" || image == "" {
 			continue
