@@ -68,7 +68,7 @@ func addServiceHandler(c *gin.Context) {
 		return
 	}
 	addService(requestBody.Name, requestBody.Image)
-
+	scanCheckpointFiles(1, requestBody.Name)
 	response := fmt.Sprintf("service %s with image %s added", requestBody.Name, requestBody.Image)
 
 	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusOK))
@@ -275,4 +275,45 @@ func getServiceConfigHandler(c *gin.Context) {
 	}
 	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, serviceConfigs[service])
+}
+
+func deleteWorkerHandler(c *gin.Context) {
+	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
+	worker_id := c.Param("worker_id")
+	if _, ok := workers[worker_id]; !ok {
+		logger.Error("Worker not found", zap.String("workerID", worker_id))
+		c.JSON(http.StatusNotFound, gin.H{"error": "Worker not found"})
+		return
+	}
+	deleteWorker(worker_id)
+	response := fmt.Sprintf("Worker %s deleted", worker_id)
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusNoContent))
+	c.JSON(http.StatusNoContent, gin.H{"msg": response})
+}
+
+func deleteServiceHandler(c *gin.Context) {
+	serviceName := c.Param("name")
+	delChk := c.Query("delChk")
+	if _, ok := services[serviceName]; !ok {
+		logger.Error("Service not found", zap.String("serviceName", serviceName))
+		c.JSON(http.StatusNotFound, gin.H{"error": "Service not found"})
+		return
+	}
+	err := deleteService(serviceName)
+	if err != nil {
+		logger.Error("Error deleting service", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error deleting service:" + err.Error()})
+		return
+	}
+	if delChk == "true" {
+		err = deleteCheckpointFiles(serviceName)
+		if err != nil {
+			logger.Error("Error deleting checkpoint files", zap.Error(err))
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error deleting checkpoint files:" + err.Error()})
+			return
+		}
+	}
+	response := fmt.Sprintf("Service %s deleted", serviceName)
+	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.String("response", response), zap.Int("status", http.StatusNoContent))
+	c.JSON(http.StatusNoContent, gin.H{"msg": response})
 }

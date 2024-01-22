@@ -24,7 +24,7 @@ func manager_init() {
 		}
 	}
 	scanServicesOnWorkers()
-	scanCheckpointFiles()
+	scanCheckpointFiles(0, "")
 }
 
 func worker_init(workerPath string) {
@@ -126,7 +126,9 @@ func processLine(line string) (string, string) {
 	}
 }
 
-func scanCheckpointFiles() {
+func scanCheckpointFiles(mode int, service string) {
+	//mode = 0 -> scan all services
+	//mode = 1 -> scan specific service
 	logger.Debug("Checking services")
 	dirPath := "/mnt/checkpointfs/"
 	dirEntries, err := os.ReadDir(dirPath)
@@ -143,6 +145,9 @@ func scanCheckpointFiles() {
 		fields := strings.Split(fileName, "_")
 		if len(fields) >= 1 {
 			serviceName := fields[0]
+			if mode == 1 && serviceName != service {
+				continue
+			}
 			if _, ok := services[serviceName]; ok {
 				addCheckpointFile(serviceName, "file:/checkpointfs/"+fileName)
 			}

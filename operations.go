@@ -3,6 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strings"
 
 	"github.com/docker/docker/api/types/mount"
 	"go.uber.org/zap"
@@ -91,8 +95,131 @@ func addCheckpointFile(name string, path string) {
 
 }
 
-func deleteService(name string) {
+func deleteService(name string) error {
+	for _, worker := range workers {
+		for _, service := range worker.Services {
+			if service.Name == name {
+				status, err := queryServiceStatus(worker.Id, name)
+				if err != nil {
+					logger.Debug("Error querying service status", zap.Error(err))
+					break
+				} else if status == "running" || status == "paused" || status == "standby" || status == "checkpointed" {
+					err := stopService(worker, services[name])
+					if err != nil {
+						logger.Error("Error stopping service", zap.Error(err))
+						return err
+					}
+				}
+				err = removeService(worker, services[name])
+				if err != nil {
+					logger.Error("Error removing service", zap.Error(err))
+					return err
+				}
+				break
+			}
+		}
+	}
 	delete(services, name)
+	return nil
+}
+
+func deleteServiceCheckpoint(name string) error {
+	dirPath := "/mnt/checkpointfs/"
+	dirEntries, err := os.ReadDir(dirPath)
+	if err != nil {
+		logger.Error("Error reading services dir", zap.Error(err))
+		return err
+	}
+
+	for _, dirEntry := range dirEntries {
+		if !dirEntry.IsDir() {
+			continue
+		}
+		fileName := dirEntry.Name()
+		fields := strings.Split(fileName, "_")
+		if len(fields) >= 1 {
+			serviceName := fields[0]
+			if serviceName == name {
+				err := os.RemoveAll(dirPath + fileName)
+				if err != nil {
+					logger.Error("Error removing service checkpoint", zap.Error(err))
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func unsubscribeService(worker_id string, name string) error {
+	worker, ok := workers[worker_id]
+	if !ok {
+		fmt.Printf("Worker with id %s not found\n", worker_id)
+		return errors.New("Worker not found")
+	}
+	url := "http://" + worker.IpAddrPort + "/cm_controller/v1/unsubscribe/" + name
+
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		logger.Error("Error creating request", zap.Error(err))
+		return err
+	}
+	req.Close = true
+	client := &http.Client{}
+	logger.Debug("Sending request to controller", zap.String("url", url))
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Error("Error sending request", zap.Error(err))
+		return err
+	}
+	logger.Debug("Request sent to controller")
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error("Error reading the response body", zap.Error(err))
+		return err
+	}
+	if resp.StatusCode != 200 {
+		logger.Error("Unsubscribe Service Fail at worker", zap.String("worker", worker.Id), zap.String("service", name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
+		return fmt.Errorf("Unsubscribe Service Fail at workerr with response code %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func deleteWorker(worker_id string) {
+	delete(workers, worker_id)
+}
+
+func deleteCheckpointFiles(service string) error {
+	logger.Debug("Deleting Chekpoint Files of a service ", zap.String("service", service))
+	dirPath := "/mnt/checkpointfs/"
+	dirEntries, err := os.ReadDir(dirPath)
+	if err != nil {
+		logger.Error("Error reading services dir", zap.Error(err))
+		return err
+	}
+
+	for _, dirEntry := range dirEntries {
+		if !dirEntry.IsDir() {
+			continue
+		}
+		fileName := dirEntry.Name()
+		fields := strings.Split(fileName, "_")
+		if len(fields) >= 1 {
+			serviceName := fields[0]
+			if serviceName == service {
+				logger.Debug("Deleting Chekpoint File", zap.String("file", dirPath+fileName))
+				err := os.RemoveAll(dirPath + fileName)
+				if err != nil {
+					logger.Error("Error removing service checkpoint", zap.Error(err))
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // Much operation functions now move into new seperate files(eg. start, run,remove,checkpoint,etc.)
