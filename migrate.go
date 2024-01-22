@@ -35,6 +35,7 @@ func migrateService(src string, dest string, service Service, copt CheckpointOpt
 		}
 		return -1, rErr
 	}
+	migrateDur := time.Since(migrateStart)
 	if stopSrc {
 		stErr := stopService(workers[src], service)
 		if stErr != nil {
@@ -42,8 +43,8 @@ func migrateService(src string, dest string, service Service, copt CheckpointOpt
 			return -1, stErr
 		}
 	}
-	migrateEnd := time.Since(migrateStart)
-	logger.Info("Migrate service successfully", zap.String("service", service.Name), zap.String("src", src), zap.String("dest", dest), zap.Duration("time", migrateEnd))
 
-	return migrateEnd.Seconds(), nil
+	logger.Info("Migrate service successfully", zap.String("service", service.Name), zap.String("src", src), zap.String("dest", dest), zap.Duration("time", migrateDur))
+
+	return migrateDur.Seconds(), nil
 }
