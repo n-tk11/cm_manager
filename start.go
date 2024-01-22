@@ -53,7 +53,12 @@ func startServiceContainer(worker Worker, startBody StartOptions) error {
 			config.StartOpt = startBody
 			serviceConfigs[startBody.ContainerName] = config
 			logger.Info("Service's container started", zap.String("worker", worker.Id), zap.String("service", startBody.ContainerName))
-			addRunService(worker.Id, ServiceInWorker{Name: startBody.ContainerName, Status: "running"})
+			worker := workers[worker.Id]
+			if !isServiceInWorker(worker, startBody.ContainerName) {
+				addRunService(worker.Id, ServiceInWorker{Name: startBody.ContainerName, Status: "standby"})
+			} else {
+				updateRunService(worker.Id, ServiceInWorker{Name: startBody.ContainerName, Status: "standby"})
+			}
 			return nil
 		} else {
 			logger.Error("Start service's container fail at worker", zap.String("worker", worker.Id), zap.String("service", startBody.ContainerName), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
@@ -64,4 +69,13 @@ func startServiceContainer(worker Worker, startBody StartOptions) error {
 		logger.Error("Service not found", zap.String("service", startBody.ContainerName))
 		return errors.New("Service not found")
 	}
+}
+
+func isServiceInWorker(worker Worker, service string) bool {
+	for _, v := range worker.Services {
+		if v.Name == service {
+			return true
+		}
+	}
+	return false
 }

@@ -91,10 +91,11 @@ func scanServicesOnWorkers() {
 			if err != nil {
 				continue
 			}
-			if status == "running" || status == "standby" || status == "checkpointed" {
+			if status != "" {
 				logger.Debug("Adding service to a worker(run)", zap.String("worker_id", worker_id), zap.String("service_name", v.Name), zap.String("status", status))
 				addRunService(worker_id, ServiceInWorker{Name: v.Name, Status: status})
 			}
+
 		}
 	}
 }
