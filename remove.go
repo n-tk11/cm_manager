@@ -37,7 +37,6 @@ func removeService(worker Worker, service Service) error {
 		logger.Error("Remove service fail at worker", zap.String("worker", worker.Id), zap.String("service", service.Name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
 		return fmt.Errorf("remove service fail at worker with response code %d", resp.StatusCode)
 	}
-	deleteService(service.Name)
 	deleteRunService(worker.Id, service.Name)
 	logger.Info("Remove service at worker succesfully", zap.String("worker", worker.Id), zap.String("service", service.Name))
 	return nil
