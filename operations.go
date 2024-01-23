@@ -76,6 +76,7 @@ func addWorker(worker_id string, ipAddrPort string) (Worker, error) {
 	}
 	if _, ok := workers[worker_id]; !ok {
 		workers[worker_id] = newWorker
+		scanServicesOnAWorker(worker_id)
 		logger.Debug("Worker added", zap.String("workerID", worker_id))
 		return newWorker, nil
 	} else {

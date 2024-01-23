@@ -105,7 +105,19 @@ func scanServicesOnWorkers() {
 		}
 	}
 }
+func scanServicesOnAWorker(worker_id string) {
+	for _, v := range services {
+		status, err := queryServiceStatus(worker_id, v.Name)
+		if err != nil {
+			continue
+		}
+		if status != "" {
+			logger.Debug("Adding service to a worker(run)", zap.String("worker_id", worker_id), zap.String("service_name", v.Name), zap.String("status", status))
+			addRunService(worker_id, ServiceInWorker{Name: v.Name, Status: status})
+		}
 
+	}
+}
 func processLine(line string) (string, string) {
 	// Split the line into two values
 	values := strings.Fields(line)
