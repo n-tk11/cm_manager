@@ -98,3 +98,18 @@ func isWorkerUp(worker_id string) bool {
 	}
 	return false
 }
+
+func isServiceInWorker(worker Worker, service string) (bool, string) {
+	for _, v := range worker.Services {
+		if v.Name == service {
+			return true, v.Status
+		}
+	}
+	return false, ""
+}
+
+func updateEditLastSopt(worker_id string, service string, lastSopt StartOptions) {
+	worker := workers[worker_id]
+	worker.lastSopt[service] = lastSopt
+	workers[worker_id] = worker
+}

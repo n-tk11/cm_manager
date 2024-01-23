@@ -73,6 +73,8 @@ func addWorker(worker_id string, ipAddrPort string) (Worker, error) {
 		IpAddrPort: ipAddrPort,
 		Status:     "new",
 		Services:   []ServiceInWorker{},
+		countDown:  0,
+		lastSopt:   make(map[string]StartOptions),
 	}
 	if _, ok := workers[worker_id]; !ok {
 		workers[worker_id] = newWorker

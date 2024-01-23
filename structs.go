@@ -8,6 +8,7 @@ type Worker struct {
 	Status     string            `json:"status"`
 	Services   []ServiceInWorker `json:"services"`
 	countDown  int
+	lastSopt   map[string]StartOptions
 }
 
 type ServiceInWorker struct {

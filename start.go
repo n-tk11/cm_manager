@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 
 	"go.uber.org/zap"
 
@@ -16,6 +17,14 @@ import (
 func startServiceContainer(worker Worker, startBody StartOptions) error {
 	logger.Debug("Starting service", zap.String("service", startBody.ContainerName))
 	if _, ok := services[startBody.ContainerName]; ok {
+		isIn, stat := isServiceInWorker(worker, startBody.ContainerName)
+		if isIn && (stat == "running" || stat == "standby" || stat == "checkpointed") {
+			logger.Error("Service already started on destination", zap.String("service", startBody.ContainerName), zap.String("worker", worker.Id))
+			return errors.New("Service already started on destination. Stop/Remove first")
+		} else if (stat == "exited" || stat == "paused" || stat == "stopped") && !reflect.DeepEqual(startBody, worker.lastSopt[startBody.ContainerName]) {
+			logger.Error("Service already existed on destination with different start options", zap.String("service", startBody.ContainerName), zap.String("worker", worker.Id))
+			return errors.New("Service already existed on destination with different start options, Pls remove first")
+		}
 		url := "http://" + worker.IpAddrPort + "/cm_controller/v1/start"
 		reqJson := startBody
 		reqJson.Mounts = append(reqJson.Mounts, mount.Mount{Source: "chkfs", Target: "/checkpointfs", Type: "volume"})
@@ -54,28 +63,21 @@ func startServiceContainer(worker Worker, startBody StartOptions) error {
 			serviceConfigs[startBody.ContainerName] = config
 			logger.Info("Service's container started", zap.String("worker", worker.Id), zap.String("service", startBody.ContainerName))
 			worker := workers[worker.Id]
-			if !isServiceInWorker(worker, startBody.ContainerName) {
+			isIn, _ := isServiceInWorker(worker, startBody.ContainerName)
+			if !isIn {
 				addRunService(worker.Id, ServiceInWorker{Name: startBody.ContainerName, Status: "standby"})
 			} else {
 				updateRunService(worker.Id, ServiceInWorker{Name: startBody.ContainerName, Status: "standby"})
 			}
+			updateEditLastSopt(worker.Id, startBody.ContainerName, startBody)
 			return nil
 		} else {
 			logger.Error("Start service's container fail at worker", zap.String("worker", worker.Id), zap.String("service", startBody.ContainerName), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
-			return fmt.Errorf("start container fail at worker with response code %d", resp.StatusCode)
+			return fmt.Errorf("start container fail at worker with response code %d: %s", resp.StatusCode, string(body))
 
 		}
 	} else {
 		logger.Error("Service not found", zap.String("service", startBody.ContainerName))
 		return errors.New("Service not found")
 	}
-}
-
-func isServiceInWorker(worker Worker, service string) bool {
-	for _, v := range worker.Services {
-		if v.Name == service {
-			return true
-		}
-	}
-	return false
 }
