@@ -96,7 +96,7 @@ func startServiceHandler(c *gin.Context) {
 	err := startServiceContainer(workers[worker_id], requestBody)
 	if err != nil {
 		logger.Error("Error starting container", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error starting container"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error starting container:" + err.Error()})
 		return
 	}
 	response := fmt.Sprintf("Container of service %s with of worker %s started", requestBody.ContainerName, worker_id)
