@@ -19,7 +19,7 @@ func checkpointService(worker_id string, service Service, option CheckpointOptio
 	// Format the time in ISO 8601 format
 	iso8601Format := "2006-01-02T15:04:05Z07:00"
 	iso8601Time := currentTime.Format(iso8601Format)
-	option.ImgUrl = "file:/checkpointfs/" + service.Name + "_" + worker_id + "_" + iso8601Time
+	option.ImgUrl = "file:/checkpointfs/" + service.Name + "/" + service.Name + "_" + worker_id + "_" + iso8601Time
 	requestBody, err := json.Marshal(option)
 	if err != nil {
 		logger.Error("Error marshalling JSON", zap.Error(err))

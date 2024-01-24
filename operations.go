@@ -57,8 +57,14 @@ func addService(name string, image string) (Service, error) {
 		},
 	}
 	if _, ok := services[name]; !ok {
+		err := mkChkDir(name)
+		if err != nil {
+			logger.Error("Error creating checkpoint directory", zap.Error(err))
+			return newService, err
+		}
 		services[name] = newService
 		serviceConfigs[name] = newServiceConfig
+
 		logger.Debug("Service added", zap.String("serviceName", name))
 		return newService, nil
 	} else {
@@ -67,7 +73,7 @@ func addService(name string, image string) (Service, error) {
 	}
 }
 
-func addWorker(worker_id string, ipAddrPort string) (Worker, error) {
+func addWorker(worker_id string, ipAddrPort string, init bool) (Worker, error) {
 	newWorker := Worker{
 		Id:         worker_id,
 		IpAddrPort: ipAddrPort,
@@ -78,7 +84,9 @@ func addWorker(worker_id string, ipAddrPort string) (Worker, error) {
 	}
 	if _, ok := workers[worker_id]; !ok {
 		workers[worker_id] = newWorker
-		scanServicesOnAWorker(worker_id)
+		if !init {
+			scanServicesOnAWorker(worker_id)
+		}
 		logger.Debug("Worker added", zap.String("workerID", worker_id))
 		return newWorker, nil
 	} else {
@@ -220,6 +228,19 @@ func deleteCheckpointFiles(service string) error {
 					return err
 				}
 			}
+		}
+	}
+	return nil
+}
+
+func mkChkDir(name string) error {
+	dirPath := "/mnt/checkpointfs/" + name
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		logger.Debug("Creating checkpoint directory for service", zap.String("serviceName", name))
+		err := os.Mkdir(dirPath, 0775)
+		if err != nil {
+			logger.Error("Error creating checkpoint directory", zap.Error(err))
+			return err
 		}
 	}
 	return nil

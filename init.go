@@ -49,7 +49,7 @@ func worker_init(workerPath string) {
 		if worker_id == "" || addr == "" {
 			continue
 		}
-		addWorker(worker_id, addr)
+		addWorker(worker_id, addr, true)
 	}
 
 	// Check for errors during scanning
@@ -141,7 +141,7 @@ func processLine(line string) (string, string) {
 func scanCheckpointFiles(mode int, service string) {
 	//mode = 0 -> scan all services
 	//mode = 1 -> scan specific service
-	logger.Debug("Checking services")
+	logger.Debug("Checking services' checkpoints")
 	dirPath := "/mnt/checkpointfs/"
 	dirEntries, err := os.ReadDir(dirPath)
 	if err != nil {
@@ -153,16 +153,31 @@ func scanCheckpointFiles(mode int, service string) {
 		if !dirEntry.IsDir() {
 			continue
 		}
-		fileName := dirEntry.Name()
-		fields := strings.Split(fileName, "_")
-		if len(fields) >= 1 {
-			serviceName := fields[0]
-			if mode == 1 && serviceName != service {
+
+		dirName := dirEntry.Name()
+		if mode == 1 && dirName != service {
+			continue
+		}
+		servEntries, err := os.ReadDir(dirPath + dirName)
+		if err != nil {
+			logger.Error("Error reading checkpoint files of a service", zap.String("service", dirName), zap.Error(err))
+		}
+		for _, servEntry := range servEntries {
+			if !dirEntry.IsDir() {
 				continue
 			}
-			if _, ok := services[serviceName]; ok {
-				addCheckpointFile(serviceName, "file:/checkpointfs/"+fileName)
+			fileName := servEntry.Name()
+			fields := strings.Split(fileName, "_")
+
+			if len(fields) >= 1 {
+				serviceName := fields[0]
+				if _, ok := services[serviceName]; ok {
+					addCheckpointFile(serviceName, "file:/checkpointfs/"+serviceName+"/"+fileName)
+				}
 			}
+		}
+		if mode == 1 && dirName == service {
+			break
 		}
 	}
 }

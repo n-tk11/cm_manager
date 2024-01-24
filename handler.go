@@ -45,7 +45,7 @@ func addWorkerHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Worker already exists"})
 		return
 	}
-	addWorker(requestBody.Worker_id, requestBody.Addr)
+	addWorker(requestBody.Worker_id, requestBody.Addr, false)
 
 	response := fmt.Sprintf("worker_id %s with address %s added", requestBody.Worker_id, requestBody.Addr)
 
