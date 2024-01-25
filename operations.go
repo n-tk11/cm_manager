@@ -205,31 +205,19 @@ func deleteWorker(worker_id string) {
 
 func deleteCheckpointFiles(service string) error {
 	logger.Debug("Deleting Chekpoint Files of a service ", zap.String("service", service))
-	dirPath := "/mnt/checkpointfs/"
-	dirEntries, err := os.ReadDir(dirPath)
+	if service == "" {
+		logger.Error("No service name provided to delete checkpoint files", zap.String("operation",
+			"deleteCheckpointFiles"))
+		return errors.New("No service name provided to delete checkpoint files")
+	}
+	dirPath := "/mnt/checkpointfs/" + service + "/"
+
+	err := os.RemoveAll(dirPath)
 	if err != nil {
-		logger.Error("Error reading services dir", zap.Error(err))
+		logger.Error("Error removing service checkpoint directory", zap.Error(err))
 		return err
 	}
 
-	for _, dirEntry := range dirEntries {
-		if !dirEntry.IsDir() {
-			continue
-		}
-		fileName := dirEntry.Name()
-		fields := strings.Split(fileName, "_")
-		if len(fields) >= 1 {
-			serviceName := fields[0]
-			if serviceName == service {
-				logger.Debug("Deleting Chekpoint File", zap.String("file", dirPath+fileName))
-				err := os.RemoveAll(dirPath + fileName)
-				if err != nil {
-					logger.Error("Error removing service checkpoint", zap.Error(err))
-					return err
-				}
-			}
-		}
-	}
 	return nil
 }
 
