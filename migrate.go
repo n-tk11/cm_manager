@@ -2,6 +2,7 @@ package main
 
 import (
 	//"reflect"
+	"errors"
 	"reflect"
 	"time"
 
@@ -42,15 +43,17 @@ func migrateService(src string, dest string, service Service, copt CheckpointOpt
 		return -1, cErr
 	}
 	//startServiceContainer(workers[dest], sopt)
-	//time.Sleep(200 * time.Millisecond) //If too fast ffd may not ready
+	time.Sleep(200 * time.Millisecond) //If too fast ffd may not ready
 	runCount = 0
 	rErr := runService(workers[dest], service, ropt)
 	if rErr != nil {
 		logger.Error("Failed to run service on destination, will start the service on source again", zap.String("serviceName", service.Name), zap.String("src", src), zap.String("dest", dest), zap.Error(rErr))
-
+		runCount = 0
+		rErr = errors.New(rErr.Error() + ",rerun on source")
 		rErr := runService(workers[src], service, ropt)
 		if rErr != nil {
 			logger.Error("Failed to rerun service on source", zap.String("serviceName", service.Name), zap.String("src", src), zap.Error(rErr))
+			rErr = errors.New(rErr.Error() + ",and cannot rerun on source")
 		}
 		return -1, rErr
 	}
