@@ -31,7 +31,7 @@ type ServiceConfig struct {
 type StartOptions struct {
 	ContainerName string        `json:"container_name"`
 	Image         string        `json:"image"`
-	AppPort       string        `json:"app_port"`
+	AppPorts      []string      `json:"app_ports"`
 	Envs          []string      `json:"envs"`
 	Mounts        []mount.Mount `json:"mounts"`
 	Caps          []string      `json:"caps"`

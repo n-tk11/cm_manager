@@ -28,7 +28,7 @@ func addService(name string, image string) (Service, error) {
 		StartOpt: StartOptions{
 			ContainerName: name,
 			Image:         image,
-			AppPort:       "",
+			AppPorts:      []string{},
 			Envs:          []string{},
 			Mounts:        []mount.Mount{},
 			Caps:          []string{},
