@@ -34,10 +34,11 @@ func stopService(worker Worker, service Service) error {
 		return err
 	}
 	if resp.StatusCode != 200 {
+		updateWorkerServices(worker.Id, service.Name)	
 		logger.Error("Stop service fail at worker", zap.String("worker", worker.Id), zap.String("service", service.Name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
 		return fmt.Errorf("stop service fail at worker with response code %d", resp.StatusCode)
 	}
-
+  updateWorkerServices(worker.Id, service.Name)	
 	logger.Info("Stop service at worker succesfully", zap.String("worker", worker.Id), zap.String("service", service.Name))
 	return nil
 }

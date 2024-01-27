@@ -16,6 +16,8 @@ func migrateService(src string, dest string, service Service, copt CheckpointOpt
 	startErrCh := make(chan error)
 	checkpointErrCh := make(chan error)
 	_, statDest := isServiceInWorker(workers[dest], service.Name)
+	logger.Debug("Service status on destination", zap.String("service", service.Name), zap.String("status", statDest))
+	logger.Debug("Start options", zap.Any("sopt", sopt), zap.Any("lastopt", workers[dest].lastSopt[service.Name]))
 	if !((statDest == "standby" || statDest == "checkpointed") && reflect.DeepEqual(sopt, workers[dest].lastSopt[service.Name])) {
 		willStart = true
 		go func() {
@@ -67,6 +69,7 @@ func migrateService(src string, dest string, service Service, copt CheckpointOpt
 	}
 
 	logger.Info("Migrate service successfully", zap.String("service", service.Name), zap.String("src", src), zap.String("dest", dest), zap.Duration("time", migrateDur))
-
+	updateWorkerServices(src, service.Name)
+	updateWorkerServices(dest, service.Name)
 	return migrateDur.Seconds(), nil
 }

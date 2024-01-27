@@ -9,12 +9,15 @@ import (
 	"go.uber.org/zap"
 )
 
-func updateWorkerServices(worker_id string) error {
+func updateWorkerServices(worker_id string, service string) error {
 	worker, ok := workers[worker_id]
 	if !ok {
 		return errors.New("worker not found")
 	}
 	for _, v := range worker.Services {
+		if service != "" && service != v.Name {
+			continue
+		}
 		status, err := queryServiceStatus(worker_id, v.Name)
 		if err != nil {
 			deleteRunService(worker_id, v.Name)
@@ -22,7 +25,9 @@ func updateWorkerServices(worker_id string) error {
 		}
 		v.Status = status
 		updateRunService(worker_id, v)
-
+		if service == v.Name {
+			break
+		}
 	}
 	return nil
 }

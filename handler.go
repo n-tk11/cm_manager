@@ -184,7 +184,7 @@ func getAllWorkersHandler(c *gin.Context) {
 	logger.Debug("request", zap.String("method", "get"), zap.String("path", c.Request.URL.Path))
 	var workerArr []Worker
 	for _, v := range workers {
-		updateWorkerServices(v.Id)
+		updateWorkerServices(v.Id, "")
 		workerArr = append(workerArr, v)
 	}
 	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
@@ -210,7 +210,7 @@ func getWorkerHandler(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Worker not found"})
 		return
 	}
-	updateWorkerServices(worker_id)
+	updateWorkerServices(worker_id, "")
 
 	logger.Debug("response", zap.String("method", "get"), zap.String("path", c.Request.URL.Path), zap.Int("status", http.StatusOK))
 	c.JSON(http.StatusOK, workers[worker_id])

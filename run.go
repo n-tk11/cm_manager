@@ -43,6 +43,8 @@ func runService(worker Worker, service Service, option RunOptions) error {
 		logger.Error("Error reading the responseBody", zap.Error(err))
 		return err
 	}
+
+	updateWorkerServices(worker.Id, service.Name)	
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 500 && runCount < 1 {
 			runCount++

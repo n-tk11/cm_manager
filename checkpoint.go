@@ -52,10 +52,12 @@ func checkpointService(worker_id string, service Service, option CheckpointOptio
 		config := serviceConfigs[service.Name]
 		config.ChkOpt = option
 		serviceConfigs[service.Name] = config
+		updateWorkerServices(worker_id, service.Name)
 		logger.Info("Checkpoint successfully the image name", zap.String("image", option.ImgUrl))
 		addCheckpointFile(service.Name, option.ImgUrl)
 		return option.ImgUrl, nil
 	} else {
+		updateWorkerServices(worker_id, service.Name)
 		logger.Error("Checkpoint service fail at worker", zap.String("worker", worker_id), zap.String("service", service.Name), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
 		return "", fmt.Errorf("checkpoint service fail at worker with response code %d", resp.StatusCode)
 

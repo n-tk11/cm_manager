@@ -60,6 +60,24 @@ paths:
           description: Not Found
         "500":
           description: Internal Server Error
+    delete:
+      tags:
+        - "Worker"
+      summary: Delete a worker
+      parameters:
+        - name: worker_id
+          in: path
+          description: ID of the worker
+          required: true
+          schema:
+            type: string
+      responses:
+        "203":
+          description: Deleted
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
 
   /cm_manager/v1.0/service:
     post:
@@ -117,7 +135,24 @@ paths:
           description: Not Found
         "500":
           description: Internal Server Error
-
+    delete:
+      tags:
+        - "Service"
+      summary: Delete a service
+      parameters:
+        - name: name
+          in: path
+          description: Name of the worker
+          required: true
+          schema:
+            type: string
+      responses:
+        "203":
+          description: Deleted
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
   /cm_manager/v1.0/start/{worker_id}/{service}}:
     post:
       tags:

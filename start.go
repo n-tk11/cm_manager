@@ -70,8 +70,10 @@ func startServiceContainer(worker Worker, startBody StartOptions) error {
 				updateRunService(worker.Id, ServiceInWorker{Name: startBody.ContainerName, Status: "standby"})
 			}
 			updateEditLastSopt(worker.Id, startBody.ContainerName, startBody)
+			updateWorkerServices(worker.Id, startBody.ContainerName)
 			return nil
 		} else {
+			updateWorkerServices(worker.Id, startBody.ContainerName)
 			logger.Error("Start service's container fail at worker", zap.String("worker", worker.Id), zap.String("service", startBody.ContainerName), zap.Int("status_code", resp.StatusCode), zap.String("body", string(body)))
 			return fmt.Errorf("start container fail at worker with response code %d: %s", resp.StatusCode, string(body))
 
