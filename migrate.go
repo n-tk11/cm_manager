@@ -12,52 +12,60 @@ import (
 func migrateService(src string, dest string, service Service, copt CheckpointOptions, ropt RunOptions, sopt StartOptions, stopSrc bool) (float64, error) {
 	logger.Debug("Migrating service", zap.String("service", service.Name))
 	migrateStart := time.Now()
-	willStart := false
-	startErrCh := make(chan error)
-	checkpointErrCh := make(chan error)
+
+	// willStart := false
+	//startErrCh := make(chan error)
+	//checkpointErrCh := make(chan error)
+	var sErr error
 	_, statDest := isServiceInWorker(workers[dest], service.Name)
 	logger.Debug("Service status on destination", zap.String("service", service.Name), zap.String("status", statDest))
 	logger.Debug("Start options", zap.Any("sopt", sopt), zap.Any("lastopt", workers[dest].lastSopt[service.Name]))
 	if !((statDest == "standby" || statDest == "checkpointed") && reflect.DeepEqual(sopt, workers[dest].lastSopt[service.Name])) {
-		willStart = true
-		go func() {
-			startErrCh <- startServiceContainer(workers[dest], sopt)
-		}()
-	}
-	go func() {
-		result, err := checkpointService(src, service, copt)
-		ropt.ImageURL = result
-		checkpointErrCh <- err
-	}()
+		// willStart = true
+		// go func() {
+		// startErrCh <- startServiceContainer(workers[dest], sopt)
+		// }()
 
-	var sErr error
-	if willStart {
-		sErr = <-startErrCh
+		sErr = startServiceContainer(workers[dest], sopt)
 	}
-	cErr := <-checkpointErrCh
+	// go func() {
+	// 	result, err := checkpointService(src, service, copt)
+	// 	ropt.ImageURL = result
+	// 	checkpointErrCh <- err
+	// }()
 	if sErr != nil {
 		logger.Error("Error starting service's container at destination", zap.String("serviceName", service.Name), zap.String("dest", dest), zap.Error(sErr))
 		return -1, sErr
 	}
+	var cErr error
+	ropt.ImageURL, cErr = checkpointService(src, service, copt)
+
+	// var sErr error
+	// if willStart {
+	// 	sErr = <-startErrCh
+	// }
+	//cErr := <-checkpointErrCh
 	if cErr != nil {
 		logger.Error("Error checkpoint service at source", zap.String("serviceName", service.Name), zap.String("src", src), zap.Error(cErr))
 
 		return -1, cErr
 	}
 	//startServiceContainer(workers[dest], sopt)
-	time.Sleep(200 * time.Millisecond) //If too fast ffd may not ready
+	//time.Sleep(200 * time.Millisecond) //If too fast ffd may not ready
 	runCount = 0
 	rErr := runService(workers[dest], service, ropt)
 	if rErr != nil {
 		logger.Error("Failed to run service on destination, will start the service on source again", zap.String("serviceName", service.Name), zap.String("src", src), zap.String("dest", dest), zap.Error(rErr))
 		runCount = 0
-		rErr = errors.New(rErr.Error() + ",rerun on source")
-		rErr := runService(workers[src], service, ropt)
-		if rErr != nil {
+		var rrErr error
+		rrErr = runService(workers[src], service, ropt)
+		if rrErr != nil {
 			logger.Error("Failed to rerun service on source", zap.String("serviceName", service.Name), zap.String("src", src), zap.Error(rErr))
-			rErr = errors.New(rErr.Error() + ",and cannot rerun on source")
+			rrErr = errors.New(rErr.Error() + ",and cannot rerun on source")
+			return -1, rrErr
 		}
-		return -1, rErr
+		rrErr = errors.New(rErr.Error() + ",rerun on source")
+		return -1, rrErr
 	}
 	migrateDur := time.Since(migrateStart)
 	if stopSrc {
