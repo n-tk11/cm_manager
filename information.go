@@ -23,6 +23,12 @@ func updateWorkerServices(worker_id string, service string) error {
 			deleteRunService(worker_id, v.Name)
 			continue
 		}
+		_, ok := lastChkRun[v.Name]
+		if ok {
+			if status == "checkpointed" && lastChkRun[v.Name] {
+				status = "running"
+			}
+		}
 		v.Status = status
 		updateRunService(worker_id, v)
 		if service == v.Name {
@@ -76,7 +82,7 @@ func queryServiceStatus(worker_id string, service string) (string, error) {
 		return "", errors.New("status not found")
 	}
 	logger.Error("Error getting status from controller", zap.Int("status", resp.StatusCode))
-	return "", errors.New("Error getting status from controller")
+	return "", errors.New("error getting status from controller")
 }
 
 func isWorkerUp(worker_id string) bool {

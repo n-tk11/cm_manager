@@ -11,6 +11,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var lastChkRun = make(map[string]bool)
+
 func checkpointService(worker_id string, service Service, option CheckpointOptions) (string, error) {
 	logger.Debug("Checkpointing service", zap.String("service", service.Name))
 	url := "http://" + workers[worker_id].IpAddrPort + "/cm_controller/v1/checkpoint/" + service.Name
@@ -55,6 +57,7 @@ func checkpointService(worker_id string, service Service, option CheckpointOptio
 		updateWorkerServices(worker_id, service.Name)
 		logger.Info("Checkpoint successfully the image name", zap.String("image", option.ImgUrl))
 		addCheckpointFile(service.Name, option.ImgUrl)
+		lastChkRun[service.Name] = option.LeaveRun
 		return option.ImgUrl, nil
 	} else {
 		updateWorkerServices(worker_id, service.Name)
